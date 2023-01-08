@@ -1,0 +1,87 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4544963678091133936
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6258599706093777357}
+  - component: {fileID: 6416567794733990395}
+  m_Layer: 0
+  m_Name: ForestTile
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6258599706093777357
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4544963678091133936}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6416567794733990395
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4544963678091133936}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d565750373132014cb0daee47a21a228, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveCosts:
+  - moveType: 0
+    moveCost: 2
+  - moveType: 1
+    moveCost: 1
+  - moveType: 2
+    moveCost: 3
+  percentageModifier:
+    attack: 300
+    defense: 400
+    mDefense: 500
+    dodge: 600
+  terrainType:
+    terrainTypeName: Forest
+    clips:
+    - part: 0
+      prefabForRender: {fileID: 1222304700780709686, guid: f13086b60e4d2a8449fde2143e74caa7, type: 3}
+    - part: 1
+      prefabForRender: {fileID: 4569505433729414715, guid: a576b5583f78d88459408a283dbef51f, type: 3}
+    - part: 2
+      prefabForRender: {fileID: 2200012083684622600, guid: fef6f90bcb5bc724fac055aa13bfa0c0, type: 3}
+    - part: 3
+      prefabForRender: {fileID: 323945440803099410, guid: 0c2077b1549c75b43a183a8804ef63c6, type: 3}
+    - part: 4
+      prefabForRender: {fileID: 5744837217868214191, guid: 10c6cc1acd01aba4199afe7913d9dcc4, type: 3}
+    - part: 5
+      prefabForRender: {fileID: 4300860446572757063, guid: 7aaf427544e74df41a0ff27881cf2c9b, type: 3}
+    - part: 6
+      prefabForRender: {fileID: 9012148218029097157, guid: febaf554dafdc784f8fd4473e640d22f, type: 3}
+    - part: 7
+      prefabForRender: {fileID: 5931373343124151540, guid: 35ce3d7824821164ab4dbb99a7c7045d, type: 3}
+    - part: 8
+      prefabForRender: {fileID: 2392515070201274073, guid: d6d1825a6344f024dbedd1cca13c9a78, type: 3}
+    - part: 9
+      prefabForRender: {fileID: 7075599562146556043, guid: 35e7ca9fa42bf154ebabe4b11363e5f9, type: 3}
+    - part: 10
+      prefabForRender: {fileID: 5512436601537504164, guid: b98cf6918221dd9468de10e733e8a3d3, type: 3}
+    - part: 11
+      prefabForRender: {fileID: 255446466440255908, guid: 9d2d6a0f495378f49ae1a6f0e77e8a38, type: 3}
+    - part: 12
+      prefabForRender: {fileID: 8546041926129350129, guid: c77762edd5471c2479f93f87c5d769e4, type: 3}
