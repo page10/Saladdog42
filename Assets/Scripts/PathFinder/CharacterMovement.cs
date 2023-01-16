@@ -9,7 +9,7 @@ public class CharacterMovement : MonoBehaviour
     private List<Vector2Int> _dijkstraRange = new List<Vector2Int>();  //Dijkstra生成的移动范围 能get不能set
     private Dijkstra _pathFinder = new Dijkstra();  //用来寻路的东西
 
-    public void GetDijkstraRange(Vector2Int pos)  //拿范围
+    public List<Vector2Int> GetDijkstraRange(Vector2Int pos)  //拿范围
     {
         _dijkstraRange.Clear();
 
@@ -18,8 +18,9 @@ public class CharacterMovement : MonoBehaviour
         {
             _dijkstraRange.Add(moveable.position);
         }
+        return _dijkstraRange;
     }
-    public bool clicked = false;
+    //public bool clicked = false;
     // private void FixedUpdate()
     // {
     //     if (Input.GetMouseButton(0) && clicked == false)  //input不能发生在CharacterMovement里面 之后有专门的inputManager 

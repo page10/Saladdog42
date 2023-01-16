@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6258599706093777357}
   - component: {fileID: 6416567794733990395}
+  - component: {fileID: 4283902262200030559}
   m_Layer: 0
   m_Name: ForestTile
   m_TagString: Untagged
@@ -85,3 +86,15 @@ MonoBehaviour:
       prefabForRender: {fileID: 255446466440255908, guid: 9d2d6a0f495378f49ae1a6f0e77e8a38, type: 3}
     - part: 12
       prefabForRender: {fileID: 8546041926129350129, guid: c77762edd5471c2479f93f87c5d769e4, type: 3}
+--- !u!114 &4283902262200030559
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4544963678091133936}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be409c3f109b1c1499f17929e63be13f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

@@ -81,10 +81,12 @@ public class MapGenerator : MonoBehaviour
             _map[x, y] = gameObject.GetComponent<TileOfTerrain>();
             //Debug.Log(_map[x, y].terrainType.terrainTypeName);
             gameObject.transform.SetParent(transform);
-            gameObject.transform.position = new Vector3(
-                x * Constants.tileSize,
-                y * Constants.tileSize
-            );
+            GridPosition gridPosition = gameObject.GetComponent<GridPosition>();
+            if (gridPosition)
+            {
+                gridPosition.grid = new Vector2Int(x, y);
+                gridPosition.SynchronizeGridPosition();
+            }
         }
     }
 
