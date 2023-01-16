@@ -5,7 +5,7 @@ using UnityEngine;
 public class GameManager : MonoBehaviour
 {
     private MovementManager movementManager;
-
+    private Camera currentCamera;
 
     private int currentPlayerIndex = 0;
 
@@ -14,23 +14,62 @@ public class GameManager : MonoBehaviour
 
     private void Awake()
     {
+        currentCamera = GameObject.Find("Camera").GetComponent<Camera>();
         movementManager = GetComponent<MovementManager>();
         StartGame(2);
     }
 
-    public bool clicked = false;
+    public int waitTick = 0;
     private void FixedUpdate()
     {
-        if (Input.GetMouseButton(0) && clicked == false)  //input不能发生在CharacterMovement里面 之后有专门的inputManager 
+        switch (GameState.gameControlState)
         {
-            Debug.Log("mouseClicked");
-            clicked = true;
-            movementManager.GetMoveRange(characters[0][0].GetComponent<CharacterMovement>());
+            case GameControlState.SelectCharacter:
+                {
+                    if (Input.GetMouseButton(0) && waitTick <= 0)  //input不能发生在CharacterMovement里面 之后有专门的inputManager 
+                    {
+                        //Debug.Log("mouseClicked");
+                        movementManager.GetMoveRange(characters[0][0].GetComponent<CharacterMovement>());
+                        GameState.gameControlState = GameControlState.ShowMoveRange;
+                        waitTick = 10;
+                    }
+                }
+                break;
+            case GameControlState.ShowMoveRange:
+                {
+                    if (Input.GetMouseButton(0) && waitTick <= 0)
+                    {
+                        List<Vector2Int> moveGrids = movementManager.GetMovePath(
+                            movementManager.GetGridPosition(
+                                currentCamera.ScreenToWorldPoint(Input.mousePosition)
+                            )
+                        );
+                        if (moveGrids.Count > 1)
+                        {
+                            movementManager.ClearMoveRange();
+                            for (int i = 0; i < moveGrids.Count; i++)
+                            {
+                                Debug.Log("[" + i + "]" + moveGrids[i]);
+                                movementManager.AddMoveRange(moveGrids[i]);
+                            }
+                        }
+                        GameState.gameControlState = GameControlState.CharacterMoving;
+                        waitTick = 10;
+                    }                    
+                }
+                break;
+            case GameControlState.CharacterMoving:
+                {
+                    
+                }
+                break;
+
         }
-        else
+        if (waitTick > 0)
         {
-            clicked = false;
+            waitTick -= 1;
         }
+
     }
 
     private void StartGame(int playerCount)
