@@ -81,13 +81,13 @@ public class MovementManager : MonoBehaviour
     {
         Debug.Log("position3: " + position3);
         Vector2Int tempVec2Int = new Vector2Int(
-            Mathf.FloorToInt((position3.x - Constants.tileSize / 4.00f) / Constants.tileSize),
-            Mathf.FloorToInt((position3.y - Constants.tileSize / 4.00f) / Constants.tileSize));
+            Mathf.FloorToInt((position3.x + Constants.tileSize / 4.00f) / Constants.tileSize),
+            Mathf.FloorToInt((position3.y + Constants.tileSize / 4.00f) / Constants.tileSize));
         Debug.Log("tempVec2Int: " + tempVec2Int);
 
         return new Vector2Int(
-            Mathf.FloorToInt((position3.x - Constants.tileSize / 4.00f) / Constants.tileSize),
-            Mathf.FloorToInt((position3.y - Constants.tileSize / 4.00f) / Constants.tileSize)
+            Mathf.FloorToInt((position3.x + Constants.tileSize / 4.00f) / Constants.tileSize),
+            Mathf.FloorToInt((position3.y + Constants.tileSize / 4.00f) / Constants.tileSize)
         );
     }
 
