@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2661267029462043810}
   - component: {fileID: 222721938453132573}
   - component: {fileID: 6778848759498159006}
+  - component: {fileID: 2905417396489928722}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -47,8 +48,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3bf1a876eb218bb499f1bfef3d6ee9d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  MovePoints: 4
-  moveType: 2
+  movePower:
+    moveType: 2
+    moveCost: 10
 --- !u!114 &222721938453132573
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -76,6 +78,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   masterPlayerIndex: 0
   hasMoved: 0
+--- !u!114 &2905417396489928722
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2661267029462043815}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1965bdff487c1874290a80b54ad26862, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &6461995665366758566
 GameObject:
   m_ObjectHideFlags: 0

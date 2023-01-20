@@ -4,6 +4,7 @@ using UnityEngine;
 
 public enum GameControlState
 {
+    NewTurn,  // New turn
     SelectCharacter,  // select one focused character
     ShowMoveRange,  // showing moverange prefabs 
     CharacterMoving,  //character moving to target position

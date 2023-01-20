@@ -11,6 +11,7 @@ public class GameManager : MonoBehaviour
 
     private int playerCount = 2;
     private List<GameObject>[] characters;  // all rabbits(characters)
+    private GameObject selectedCharacter;  // selected character
 
     private void Awake()
     {
@@ -24,12 +25,21 @@ public class GameManager : MonoBehaviour
     {
         switch (GameState.gameControlState)
         {
-            case GameControlState.SelectCharacter:
+            case GameControlState.NewTurn:
                 {
+                    movementManager.ClearMoveRange();
+                    //重置可移动角色的移动状态
+
+                    
+                }
+                break;
+            case GameControlState.SelectCharacter:
+                {                    
                     if (Input.GetMouseButton(0) && waitTick <= 0)  //input不能发生在CharacterMovement里面 之后有专门的inputManager 
                     {
                         //Debug.Log("mouseClicked");
-                        movementManager.GetMoveRange(characters[0][0].GetComponent<CharacterMovement>());
+                        selectedCharacter = characters[0][0];
+                        movementManager.GetMoveRange(selectedCharacter.GetComponent<CharacterMovement>());
                         GameState.gameControlState = GameControlState.ShowMoveRange;
                         waitTick = 10;
                     }
@@ -52,15 +62,41 @@ public class GameManager : MonoBehaviour
                                 Debug.Log("[" + i + "]" + moveGrids[i]);
                                 movementManager.AddMoveRange(moveGrids[i]);
                             }
+
+                            if (selectedCharacter == null)
+                            {
+                                GameState.gameControlState = GameControlState.SelectCharacter;
+                                waitTick = 10;
+                                return;
+                            }
+                            MoveByPath moveByPath = selectedCharacter.GetComponent<MoveByPath>();
+                            if (moveByPath != null)
+                            {                                
+                                moveByPath.StartMove(moveGrids);
+                                GameState.gameControlState = GameControlState.CharacterMoving;
+                                waitTick = 10;
+                            }
                         }
-                        GameState.gameControlState = GameControlState.CharacterMoving;
-                        waitTick = 10;
-                    }                    
+                        
+                    }
                 }
                 break;
             case GameControlState.CharacterMoving:
                 {
-                    
+                    if (selectedCharacter == null)
+                    {
+                        GameState.gameControlState = GameControlState.SelectCharacter;
+                        waitTick = 10;
+                        movementManager.ClearMoveRange();
+                        return;
+                    }
+                    MoveByPath moveByPath = selectedCharacter.GetComponent<MoveByPath>();
+                    if (moveByPath == null || moveByPath.IsMoving == false)
+                    {
+                        GameState.gameControlState = GameControlState.SelectCharacter;
+                        movementManager.ClearMoveRange();
+                        waitTick = 10;
+                    }
                 }
                 break;
 
