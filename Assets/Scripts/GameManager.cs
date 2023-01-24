@@ -10,13 +10,15 @@ public class GameManager : MonoBehaviour
     private int currentPlayerIndex = 0;
 
     private int playerCount = 2;
-    private List<GameObject>[] characters;  // all rabbits(characters)
+    private List<CharacterObject>[] characters;  // all rabbits(characters)
     private GameObject selectedCharacter;  // selected character
+    private MapGenerator mapGenerator;
 
     private void Awake()
     {
         currentCamera = GameObject.Find("Camera").GetComponent<Camera>();
         movementManager = GetComponent<MovementManager>();
+        mapGenerator = GetComponent<MapGenerator>();
         StartGame(2);
     }
 
@@ -28,9 +30,16 @@ public class GameManager : MonoBehaviour
             case GameControlState.NewTurn:
                 {
                     movementManager.ClearMoveRange();
-                    //重置可移动角色的移动状态
-
-                    
+                    //重置可移动角色的移动状态    
+                    //这里直接把所有角色的可移动状态重置吧 反正玩家也操作不了敌人队伍
+                    for (int i = 0; i < playerCount; i++)
+                    {
+                        for (int j = 0; j < characters[i].Count; j++)
+                        {
+                            characters[i][j].animator.NewTurn();  
+                        }
+                    }
+                
                 }
                 break;
             case GameControlState.SelectCharacter:
@@ -38,7 +47,7 @@ public class GameManager : MonoBehaviour
                     if (Input.GetMouseButton(0) && waitTick <= 0)  //input不能发生在CharacterMovement里面 之后有专门的inputManager 
                     {
                         //Debug.Log("mouseClicked");
-                        selectedCharacter = characters[0][0];
+                        selectedCharacter = characters[0][0].gameObject;
                         movementManager.GetMoveRange(selectedCharacter.GetComponent<CharacterMovement>());
                         GameState.gameControlState = GameControlState.ShowMoveRange;
                         waitTick = 10;
@@ -69,10 +78,10 @@ public class GameManager : MonoBehaviour
                                 waitTick = 10;
                                 return;
                             }
-                            MoveByPath moveByPath = selectedCharacter.GetComponent<MoveByPath>();
-                            if (moveByPath != null)
+                            AnimatorController animatorController = selectedCharacter.GetComponent<AnimatorController>();
+                            if (animatorController != null)
                             {                                
-                                moveByPath.StartMove(moveGrids);
+                                animatorController.StartMove(moveGrids);
                                 GameState.gameControlState = GameControlState.CharacterMoving;
                                 waitTick = 10;
                             }
@@ -112,18 +121,75 @@ public class GameManager : MonoBehaviour
     {
         this.playerCount = playerCount;
 
-        characters = new List<GameObject>[playerCount];
+        characters = new List<CharacterObject>[playerCount];
         for (int i = 0; i < playerCount; i++)
         {
-            characters[i] = new List<GameObject>();
+            characters[i] = new List<CharacterObject>();
         }
 
-        CreateCharacter("Prefabs/Player", 0, new Vector2Int(3, 3));
+        List<int> tempPlayers = new List<int>();  // temp players 
+        tempPlayers.Add(5);
+        tempPlayers.Add(8);
+        CreateAllCharacters(tempPlayers);
+
+        GameState.gameControlState = GameControlState.NewTurn;
+    }
+
+    private List<Vector2Int> GenerateGrids(List<int> playersAndCount)
+    {
+        int playerCount = playersAndCount.Count;
+        int totalCount = 0;
+        List<Vector2Int> allGrids = new List<Vector2Int>();
+        List<Vector2Int> allDrawGrids = new List<Vector2Int>();
+
+        for(int i = 0; i <= playerCount - 1; i++)
+        {
+            totalCount += playersAndCount[i];
+        }
+
+        for (int i = 0; i < mapGenerator.mapSize.x; i++)
+        {
+            for (int j = 0; j < mapGenerator.mapSize.y; j++)
+            {
+                allGrids.Add(new Vector2Int(i,j));
+            }
+        }
+
+        for (int i = 0; i < totalCount; i++)
+        {
+            int index = Random.Range(0, allGrids.Count);
+            allDrawGrids.Add(allGrids[index]);
+            allGrids.RemoveAt(index);
+        }
+
+        return allDrawGrids;
+
+    }
+
+    private void CreateAllCharacters(List<int> playersAndCount)
+    {
+        int playerCount = playersAndCount.Count;
+        List<Vector2Int> allGrids = GenerateGrids(playersAndCount);
+        List<string> paths = new List<string>();
+        int index = 0;
+
+        paths.Add("Prefabs/Characters/Rabbit_Blue");
+        paths.Add("Prefabs/Characters/Rabbit_Red");
+
+        for (int i = 0; i < playerCount; i++)
+        {
+            for (int j = 0; j < playersAndCount[i]; j++)
+            {
+                CreateCharacter(paths[i], i, allGrids[index]);
+                index++;
+            }
+        }
     }
 
     private void CreateCharacter(string prefabPath, int playerIndex, Vector2Int gridPosition)
     {
         GameObject character = Instantiate<GameObject>(Resources.Load<GameObject>(prefabPath));
+        
         if (character == null) return;
 
         character.transform.SetParent(transform);
@@ -141,7 +207,10 @@ public class GameManager : MonoBehaviour
             slaveTo.masterPlayerIndex = playerIndex;
         }
 
-        characters[playerIndex].Add(character);
+        AnimatorController animator = character.GetComponent<AnimatorController>();
+
+        characters[playerIndex].Add(new CharacterObject(gPos, slaveTo, animator));
+
     }
 
 

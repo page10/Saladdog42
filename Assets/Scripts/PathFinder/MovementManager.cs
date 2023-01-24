@@ -133,6 +133,4 @@ public class MovementManager : MonoBehaviour
         return res;
     }
 
-
-
 }
