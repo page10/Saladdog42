@@ -6,15 +6,23 @@ public class MovementManager : MonoBehaviour
 {
     private MapGenerator _mapGenerator;
     private GridPosition _movingCharacter;
-    private List<GameObject> moveRange = new List<GameObject>();
+
+    
     private List<DijkstraMoveInfo> _logicMoveRange = new List<DijkstraMoveInfo>();
+    public List<DijkstraMoveInfo> LogicMoveRange { get => _logicMoveRange; }
 
     private void Awake()
     {
         _mapGenerator = GetComponent<MapGenerator>();
     }
 
-    public void GetMoveRange(CharacterMovement characterMove)
+    ///<summary>
+    ///获得移动范围 
+    ///<param name="characterMove" >  角色移动信息 </param>
+    ///<param name="occupiedGrids"> 是被其他单位占了的位置 </param>
+    ///<param name="allyGrids"> 是被友军单位占了的位置 </param>
+    ///</summary>
+    public void GetMoveRange(CharacterMovement characterMove, List<Vector2Int> occupiedGrids, List<Vector2Int> allyGrids)  
     {
         if (!_mapGenerator || !characterMove) return;
 
@@ -27,7 +35,9 @@ public class MovementManager : MonoBehaviour
         {
             for (int y = 0; y < height; y++)
             {
-                costMap[x, y] = _mapGenerator.Map[x, y].Cost(characterMove.movePower.moveType);
+                costMap[x, y] = occupiedGrids.Contains(new Vector2Int(x, y))?
+                            int.MaxValue :
+                            _mapGenerator.Map[x, y].Cost(characterMove.movePower.moveType);
             }
         }
         characterMove.SetCostMap(costMap);
@@ -35,47 +45,10 @@ public class MovementManager : MonoBehaviour
         GridPosition position = characterMove.GetComponent<GridPosition>();
         Vector2Int pos = position ? position.grid : Vector2Int.zero;
         _logicMoveRange = characterMove.GetDijkstraRange(pos);
-        ShowMoveRange();
+      
     }
 
-    private void ShowMoveRange()
-    {
-        ClearMoveRange();
-
-        for (int i = 0; i < _logicMoveRange.Count; i++)
-        {
-            AddMoveRange(_logicMoveRange[i].position);
-        }
-    }
-
-    public void AddMoveRange(Vector2Int gridPos)
-    {
-        GameObject grid = Instantiate<GameObject>(Resources.Load<GameObject>("Prefabs/MoveRange"));
-        if (grid == null) return;
-
-        grid.transform.SetParent(transform);
-
-        GridPosition gPos = grid.GetComponent<GridPosition>();
-        if (gPos != null)
-        {
-            gPos.grid = gridPos;
-            gPos.SynchronizeGridPosition();
-        }
-
-        moveRange.Add(grid);
-    }
-
-    public void ClearMoveRange()
-    {
-        if (moveRange.Count > 0)
-        {
-            foreach (GameObject gameRange in moveRange)
-            {
-                Destroy(gameRange);
-            }
-            moveRange.Clear();
-        }
-    }
+    
 
     public Vector2Int GetGridPosition(Vector3 position3)
     {
@@ -102,17 +75,17 @@ public class MovementManager : MonoBehaviour
 
     public List<Vector2Int> GetMovePath(Vector2Int targetGrid)
     {
-        Vector2Int startGrid = _movingCharacter.grid;
+        Vector2Int startGrid = _movingCharacter.grid;  // 移动的起始位置 也就是当前移动角色所在位置
         List<Vector2Int> res = new List<Vector2Int>();
         int targetGridIndex = IndexInLogicMoveRange(targetGrid);
         if (targetGridIndex < 0)
         {
-            res.Add(startGrid);
+            res.Add(startGrid);  //根据这个判定是不是点到可移动范围之外去了 但不可以走 还有其他的可能性 得加个判断 是哪种情况
             return res;
         }
 
         int currentIndex = targetGridIndex;
-        while (true)
+        while (true)  //根据dijkstra里各点的from 获得从起点到终点的路径
         {
             if (
                 _logicMoveRange[currentIndex].position == _logicMoveRange[currentIndex].from ||
@@ -131,6 +104,23 @@ public class MovementManager : MonoBehaviour
         }
         res.Reverse();
         return res;
+    }
+
+    /// <summary>
+    /// 根据DijkstraMoveInfo的List给出V2Int的List
+    /// </summary>
+    public static List<Vector2Int> GetV2IntFromDijkstraRange(List<DijkstraMoveInfo> dijkstraRange)
+    {
+        if (dijkstraRange.Count == 0) return new List<Vector2Int>();
+
+        List<Vector2Int> resRange = new List<Vector2Int>();
+        for (int i = 0; i < dijkstraRange.Count; i++)
+        {
+            resRange.Add(dijkstraRange[i].position);
+        }
+
+        return resRange;
+
     }
 
 }

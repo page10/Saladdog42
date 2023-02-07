@@ -4,6 +4,7 @@ public struct CharacterObject
     public GridPosition gPos;
     public SlaveState slaveTo;
     public AnimatorController animator;
+    public CharacterAttack attack;
 
     public GameObject gameObject {
         get =>
@@ -14,10 +15,11 @@ public struct CharacterObject
         
     }
 
-    public CharacterObject(GridPosition gPos, SlaveState slaveTo, AnimatorController animator)
+    public CharacterObject(GridPosition gPos, SlaveState slaveTo, AnimatorController animator, CharacterAttack attack)
     {
         this.gPos = gPos;
         this.slaveTo = slaveTo;
         this.animator = animator;
+        this.attack = attack;
     }
 }

@@ -7,7 +7,7 @@ public class MoveByPath : MonoBehaviour
 {
     private bool isMoving = false;  // initialize 
     public bool IsMoving { get => isMoving; }
-    public float moveSpeed = 4.00f;
+    public float moveSpeed = 400.00f;
     private List<PositionAndGrid> pathNodes = new List<PositionAndGrid>();  //只需要被传 不一定需要被别人知道
 
 
@@ -17,7 +17,7 @@ public class MoveByPath : MonoBehaviour
         pathNodes.Clear();
 
         Vector2Int direction = Vector2Int.zero;
-        if (path.Count > 0)
+        if (path.Count > 1)
         {
             direction = path[1] - path[0];
         }
@@ -54,9 +54,11 @@ public class MoveByPath : MonoBehaviour
         }
 
         float thisTickMoveSpeed = Time.deltaTime * moveSpeed;
+//        Debug.Log("thisTickMoveSpeed : " + thisTickMoveSpeed);
+//        Debug.Log("deltaTime: " + Time.deltaTime);
         if (Mathf.Abs(transform.position.x - pathNodes[0].position.x) + Mathf.Abs(transform.position.y - pathNodes[0].position.y) <= thisTickMoveSpeed)
         {
-            transform.position = new Vector3(pathNodes[0].position.x, transform.position.y, pathNodes[0].position.y);
+            transform.position = new Vector3(pathNodes[0].position.x, pathNodes[0].position.y);
             GridPosition gridPosition = GetComponent<GridPosition>();
             if (gridPosition != null)
             {
@@ -65,10 +67,14 @@ public class MoveByPath : MonoBehaviour
             pathNodes.RemoveAt(0);
             return;
         }
+        int xDir = Mathf.Abs(transform.position.x - pathNodes[0].position.x) < thisTickMoveSpeed? 0 : 
+        (pathNodes[0].position.x > transform.position.x? 1: -1);
+        int yDir = Mathf.Abs(transform.position.y - pathNodes[0].position.y) < thisTickMoveSpeed? 0 : 
+        (pathNodes[0].position.y > transform.position.y? 1: -1);
 
         transform.position += new Vector3(
-            -(transform.position.x - pathNodes[0].position.x) * thisTickMoveSpeed,
-            -(transform.position.y - pathNodes[0].position.y) * thisTickMoveSpeed
+            xDir * thisTickMoveSpeed,
+            yDir * thisTickMoveSpeed
         );
 
     }

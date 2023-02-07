@@ -111,6 +111,7 @@ GameObject:
   - component: {fileID: 6778848759498159006}
   - component: {fileID: 2905417396489928722}
   - component: {fileID: 7865148585829001665}
+  - component: {fileID: -3490913444439077668}
   m_Layer: 0
   m_Name: Rabbit_Blue
   m_TagString: Untagged
@@ -189,7 +190,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1965bdff487c1874290a80b54ad26862, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 4
+  moveSpeed: 10
 --- !u!114 &7865148585829001665
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -200,6 +201,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f219101fad5fcc548a09ac0080247e4e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  finishedMove: 0
+--- !u!114 &-3490913444439077668
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2661267029462043815}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ab336246fbd56d4ab8877b752953686, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &6461995665366758566
