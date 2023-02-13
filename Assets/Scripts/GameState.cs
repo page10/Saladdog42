@@ -10,6 +10,7 @@ public enum GameControlState
     CharacterMoving,  //character moving to target position
     WeaponSelect,
     SelectAttackObject,
+    ShowAttackableArea,  // 显示可以移动去的攻击位置
     ConfirmWeapon,
     Attack,
     CharacterMoveDone, 

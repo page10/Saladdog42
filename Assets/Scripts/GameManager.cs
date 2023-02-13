@@ -13,8 +13,14 @@ public class GameManager : MonoBehaviour
     private int playerCount = 2;
     private List<CharacterObject>[] characters;  // all rabbits(characters)
     private GameObject selectedCharacter;  // selected character
+    private GameObject currEnemy; //当前选中的敌人
     private MapGenerator mapGenerator;
     private UIManager uiManager;
+
+
+    // 之后要被重构掉的东西
+    private bool statusChain = false;  // 状态链
+    List<MsgDlgButtonInfo> msgDlgButtonInfos = new List<MsgDlgButtonInfo>();  
 
 
     private void Awake()
@@ -25,6 +31,12 @@ public class GameManager : MonoBehaviour
         uiManager = GetComponent<UIManager>();
         StartGame(2);
         //GameState.gameControlState = GameControlState.SelectCharacter;
+        
+        //debug用 之后删了
+        msgDlgButtonInfos.Add(new MsgDlgButtonInfo("attack", ()=>{Debug.Log("attack");}));
+        msgDlgButtonInfos.Add(new MsgDlgButtonInfo("exchange", ()=>{Debug.Log("exchange");}));
+        msgDlgButtonInfos.Add(new MsgDlgButtonInfo("skip", ()=>{Debug.Log("skip");}));
+        // 02122023 在gamemanager找个地方 调用一下uimanager 传入这些按钮
     }
 
     public int waitTick = 0;
@@ -39,8 +51,7 @@ public class GameManager : MonoBehaviour
                         GameState.gameControlState = GameControlState.EndTurn;
                         return;
                     }
-                    uiManager.ClearMoveRange();
-                    uiManager.ClearAttackRange();
+                    uiManager.ClearAllRange();
                     //重置可移动角色的移动状态    
                     //这里直接把所有角色的可移动状态重置吧 反正玩家也操作不了敌人队伍
                     for (int i = 0; i < playerCount; i++)
@@ -109,7 +120,7 @@ public class GameManager : MonoBehaviour
                         SelectedCharacterInfo currentCharacter = GetCharacterInSelectedGrid(currSelectGrid);
 
                         Vector2Int characterGrid = selectedCharacter.GetComponent<GridPosition>().grid;  // 自己那格
-                        Debug.Log("currSelectGrid , characterGrid" + currSelectGrid + "  " + characterGrid);
+                        //Debug.Log("currSelectGrid , characterGrid" + currSelectGrid + "  " + characterGrid);
                         if (currentCharacter.playerIndex == 0 && currSelectGrid != characterGrid)
                         {
                             //选中了我方角色 除了自己
@@ -120,10 +131,9 @@ public class GameManager : MonoBehaviour
                         {
                             //选中了敌方角色
                             Debug.Log("selected enemy characters");
-                            // 在这里新建一个状态 在这个状态里做以下事情
-                            // 以选中的敌人为中心 按照我的武器最小最大范围 搜索出一个攻击范围
-                            // 找这个攻击范围 和我可移动范围的交集 
-                            // 显示交集内的格子 不显示其他格子
+                            SelectedCharacterInfo currentEnemy = GetCharacterInSelectedGrid(currSelectGrid);
+                            currEnemy = characters[currentCharacter.playerIndex][currentCharacter.characterIndex].gameObject;
+                            GameState.gameControlState = GameControlState.ShowAttackableArea;
                         }
                         else
                         {
@@ -134,12 +144,11 @@ public class GameManager : MonoBehaviour
                                 );
                             if (moveGrids.Count > 0)
                             {
-                                uiManager.ClearMoveRange();
-                                uiManager.ClearAttackRange();
+                                uiManager.ClearAllRange();
                                 for (int i = 0; i < moveGrids.Count; i++)
                                 {
                                     //Debug.Log("[" + i + "]" + moveGrids[i]);
-                                    uiManager.AddMoveRange(moveGrids[i]);
+                                    uiManager.AddRange(SignType.Move, moveGrids[i]);
                                 }
 
                                 if (selectedCharacter == null)
@@ -160,12 +169,75 @@ public class GameManager : MonoBehaviour
                             {
                                 //留个以后错误提示的位置
                             }
-
                         }
-
-
                     }
                 }
+                break;
+            case GameControlState.ShowAttackableArea:
+                {
+                    // 以选中的敌人为中心 按照我的武器最小最大范围 搜索出一个攻击范围
+                    // 找这个攻击范围 和我可移动范围的交集 
+                    // 显示交集内的格子 不显示其他格子
+
+                List<Vector2Int> currAttackRange = selectedCharacter.GetComponent<CharacterAttack>().GetAttackRange(currEnemy.GetComponent<GridPosition>().grid, mapGenerator.mapSize, true);
+                List<DijkstraMoveInfo> currMoveRange = movementManager.LogicMoveRange;
+
+                List<Vector2Int> attackableArea = new List<Vector2Int>();
+
+                //在这里找交集 然后显示
+                for (int i = 0; i < currMoveRange.Count; i++)
+                {
+                    Vector2Int gridPos = currMoveRange[i].position;
+                    if (currAttackRange.Contains(gridPos))
+                    {
+                        attackableArea.Add(gridPos);
+                        Debug.Log("gridPos: " + gridPos);
+                    }
+                }
+                if (attackableArea.Count > 0)
+                {
+                    uiManager.ClearAllRange();
+                    uiManager.ShowAttackableMoveRange(attackableArea);
+                }
+
+                if (Input.GetMouseButton(0) && waitTick <= 0) 
+                    {
+                        // 之后要做一个状态链
+                        // 用来知道状态之间的变化关系
+                        // 是个数组 从0开始 中间可能改写
+                        Vector2Int currSelectGrid = movementManager.GetGridPosition(
+                                currentCamera.ScreenToWorldPoint(Input.mousePosition));
+                        if (attackableArea.Contains(currSelectGrid))
+                        {
+                            List<Vector2Int> moveGrids = movementManager.GetMovePath(currSelectGrid);
+                            if (moveGrids.Count > 0)
+                            {
+                                uiManager.ClearAllRange();
+                                for (int i = 0; i < moveGrids.Count; i++)
+                                {
+                                    uiManager.AddRange(SignType.Move,moveGrids[i]);
+                                }
+
+                                AnimatorController animatorController = selectedCharacter.GetComponent<AnimatorController>();
+                                if (animatorController != null)
+                                {
+                                    animatorController.StartMove(moveGrids);
+                                    GameState.gameControlState = GameControlState.CharacterMoving;
+                                    statusChain = true;  // 我之后不能再选敌人
+                                    waitTick = 10;
+                                }
+                            }
+                            else
+                            {
+                                //留个以后错误提示的位置
+                            }
+                        }
+                    }
+
+                }
+
+
+
                 break;
             case GameControlState.CharacterMoving:
                 {
@@ -173,25 +245,33 @@ public class GameManager : MonoBehaviour
                     {
                         GameState.gameControlState = GameControlState.SelectCharacter;
                         waitTick = 10;
-                        uiManager.ClearMoveRange();
-                        uiManager.ClearAttackRange();
+                        uiManager.ClearAllRange();
                         return;
                     }
                     MoveByPath moveByPath = selectedCharacter.GetComponent<MoveByPath>();
                     if (moveByPath == null || moveByPath.IsMoving == false)  //这次移动移动完成
                     {
-                        uiManager.ClearMoveRange();
-                        uiManager.ClearAttackRange();
-                        List<CharacterObject> reachableEnemies = GetReachableEnemies();  //检查周围还有没有可攻击的敌人
-                        if (reachableEnemies.Count > 0)
+                        uiManager.ClearAllRange();
+                        if (!statusChain)  // 我还没选敌人
                         {
-                            GameState.gameControlState = GameControlState.WeaponSelect;  //选择武器
+                            bool hasReachableEnemies = hasAttackableCharacters();  //检查周围还有没有可攻击的敌人或友方
+                            
+                            // 下一步写指令菜单
+                            if (hasReachableEnemies)
+                            {
+                                GameState.gameControlState = GameControlState.WeaponSelect;  //选择武器
+                            }
+                            else
+                            {
+                                GameState.gameControlState = GameControlState.CharacterMoveDone;  //一个角色移动完成
+                            }
+                            waitTick = 10;
                         }
-                        else
+                        else  // 我之前已经选过敌人了
                         {
-                            GameState.gameControlState = GameControlState.CharacterMoveDone;  //一个角色移动完成
+                            GameState.gameControlState = GameControlState.ConfirmWeapon;  // 确认攻击用的武器
                         }
-                        waitTick = 10;
+
                     }
 
 
@@ -215,6 +295,10 @@ public class GameManager : MonoBehaviour
                         {
                             GameState.gameControlState = GameControlState.CharacterMoveDone;
                         }
+                        else if (attackObjectCharacter.characterIndex == 0)  // 选中了我方角色
+                        {
+                            GameState.gameControlState = GameControlState.ConfirmWeapon;  // 确认使用的攻击武器
+                        }
                         else  // 选中了某个敌方角色
                         {
                             GameState.gameControlState = GameControlState.ConfirmWeapon;  // 确认使用的攻击武器
@@ -225,6 +309,8 @@ public class GameManager : MonoBehaviour
             case GameControlState.ConfirmWeapon:
                 {
                     // 还没做 先直接跳转攻击阶段了
+                    // 之后这里要根据选中的是友方还是敌方 缺人不同的武器
+                    Debug.Log("GameControlState.ConfirmWeapon");
                     GameState.gameControlState = GameControlState.Attack;
                 }
                 break;
@@ -236,8 +322,7 @@ public class GameManager : MonoBehaviour
                 break;
             case GameControlState.CharacterMoveDone:  // 每个角色移动完成后 检查是不是所有角色都移动完成
                 {
-                    uiManager.ClearMoveRange();
-                    uiManager.ClearAttackRange();
+                    uiManager.ClearAllRange();
                     bool haveAllFinished = true;
                     for (int i = 0; i < characters[0].Count; i++)
                     {
@@ -465,15 +550,15 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 获得移动之后攻击范围内的所有敌人
+    /// 检查移动之后攻击范围内的所有敌人和友方
     /// </summary>
-    private List<CharacterObject> GetReachableEnemies()
+    private bool hasAttackableCharacters()
     {
-        List<CharacterObject> reachableEnemies = new List<CharacterObject>();
+        //List<CharacterObject> reachableCharacters = new List<CharacterObject>();
         List<Vector2Int> currMoveRange = new List<Vector2Int>();  // 移动完之后 只能以它自己脚下那一格为移动范围去搜索攻击范围
         Vector2Int currPos = selectedCharacter.GetComponent<GridPosition>().grid;  // 当前位置
         currMoveRange.Add(currPos);
-        uiManager.ShowAttackRange(selectedCharacter.GetComponent<CharacterAttack>(), currMoveRange, mapGenerator.mapSize);  //总觉得不该在这调用
+        //uiManager.ShowAttackRange(selectedCharacter.GetComponent<CharacterAttack>(), currMoveRange, mapGenerator.mapSize);  //总觉得不该在这调用
         List<Vector2Int> currAttackRange = selectedCharacter.GetComponent<CharacterAttack>().GetAttackRange(currPos, mapGenerator.mapSize, true);
 
         for (int i = 1; i < playerCount; i++)
@@ -482,11 +567,13 @@ public class GameManager : MonoBehaviour
             {
                 if (currAttackRange.Contains(characters[i][j].gPos.grid))
                 {
-                    reachableEnemies.Add(characters[i][j]);
+                    return true; // 有可交互的敌方或者我方角色
                 }
             }
         }
-        return reachableEnemies;
+
+        return false;
+        
     }
 
 }

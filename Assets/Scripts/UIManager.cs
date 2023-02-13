@@ -6,6 +6,13 @@ public class UIManager : MonoBehaviour
 {
     private List<GameObject> moveRange = new List<GameObject>();
     private List<GameObject> attackRange = new List<GameObject>();
+    private List<GameObject> attackableMoveRange = new List<GameObject>();
+    private MsgDlg msgDlg;
+
+    private void Awake() {
+        msgDlg = new MsgDlg();
+        msgDlg.gameObject.SetActive(false);  // 一开始先把它隐藏掉
+    }
 
     ///<summary>
     /// 根据选中的角色和对应移动范围，得到攻击范围
@@ -33,14 +40,14 @@ public class UIManager : MonoBehaviour
         // {
         //     Debug.Log(" atkRange " + i + ":  " +atkRange[i]);  
         // }
-        
+
         return atkRange;
 
     }
 
     public void ShowAttackRange(CharacterAttack characterAttack, List<Vector2Int> moveRange, Vector2Int mapSize)
     {
-        
+
         List<Vector2Int> showRange = GetAttackRange(characterAttack, moveRange, mapSize);
         for (int i = 0; i < moveRange.Count; i++)
         {
@@ -52,53 +59,59 @@ public class UIManager : MonoBehaviour
 
         for (int i = 0; i < showRange.Count; i++)
         {
-            AddAttackRange(showRange[i]);
+            AddRange(SignType.Attack, showRange[i]);
         }
     }
 
-    private void AddAttackRange(Vector2Int gridPos)
+    ///<summary>
+    ///直接传入攻击范围，在地图上显示
+    ///</summary>
+    public void ShowAttackableMoveRange(List<Vector2Int> atkRange)
     {
-        GameObject grid = Instantiate<GameObject>(Resources.Load<GameObject>("Prefabs/AttackRange"));
-        if (grid == null) return;
 
-        grid.transform.SetParent(transform);
-
-        GridPosition gPos = grid.GetComponent<GridPosition>();
-        if (gPos != null)
+        for (int i = 0; i < atkRange.Count; i++)
         {
-            gPos.grid = gridPos;
-            gPos.SynchronizeGridPosition();
-        }
-
-        attackRange.Add(grid);
-    }
-
-    public void ClearAttackRange()
-    {
-        if (attackRange.Count > 0)
-        {
-            foreach (GameObject gameRange in attackRange)
-            {
-                Destroy(gameRange);
-            }
-            attackRange.Clear();
+            AddRange(SignType.AttackableMove, atkRange[i]);
         }
     }
+
 
     public void ShowMoveRange(List<DijkstraMoveInfo> logicMoveRange)
     {
-        ClearMoveRange();
+        ClearRange(SignType.Move);
 
         for (int i = 0; i < logicMoveRange.Count; i++)
         {
-            AddMoveRange(logicMoveRange[i].position);
+            AddRange(SignType.Move, logicMoveRange[i].position);
         }
     }
 
-    public void AddMoveRange(Vector2Int gridPos)
+
+
+    public void AddRange(SignType signType, Vector2Int gridPos)
     {
-        GameObject grid = Instantiate<GameObject>(Resources.Load<GameObject>("Prefabs/MoveRange"));
-        if (grid == null) return;
+        GameObject grid = new GameObject();
+        switch (signType)
+        {
+            case SignType.Move:  // 移动范围
+                {
+                    grid = Instantiate<GameObject>(Resources.Load<GameObject>("Prefabs/MoveRange"));
+                    if (grid == null) return;
+                }
+                break;
+            case SignType.Attack:  // 攻击范围
+                {
+                    grid = Instantiate<GameObject>(Resources.Load<GameObject>("Prefabs/AttackRange"));
+                    if (grid == null) return;
+                }
+                break;
+            case SignType.AttackableMove:  // 可移动并攻击的范围
+                {
+                    grid = Instantiate<GameObject>(Resources.Load<GameObject>("Prefabs/AttackableMoveRange"));
+                    if (grid == null) return;
+                }
+                break;
+        }
 
         grid.transform.SetParent(transform);
 
@@ -109,10 +122,77 @@ public class UIManager : MonoBehaviour
             gPos.SynchronizeGridPosition();
         }
 
-        moveRange.Add(grid);
+        switch (signType)
+        {
+            case SignType.Move:  // 移动范围
+                {
+                    moveRange.Add(grid);
+                }
+                break;
+            case SignType.Attack:  // 攻击范围
+                {
+                    attackRange.Add(grid);
+                }
+                break;
+            case SignType.AttackableMove:  // 可移动并攻击的范围
+                {
+                    attackableMoveRange.Add(grid);
+                }
+                break;
+        }
+
     }
 
-    public void ClearMoveRange()
+    /// <summary>
+    /// 根据传入的参数 清空对应的范围显示
+    /// </summary>
+    public void ClearRange(SignType signType)
+    {
+        switch (signType)
+        {
+            case SignType.Move:  // 移动范围
+                {
+                    if (moveRange.Count > 0)
+                    {
+                        foreach (GameObject gameRange in moveRange)
+                        {
+                            Destroy(gameRange);
+                        }
+                        moveRange.Clear();
+                    }
+                }
+                break;
+            case SignType.Attack:  // 攻击范围
+                {
+                    if (attackRange.Count > 0)
+                    {
+                        foreach (GameObject gameRange in attackRange)
+                        {
+                            Destroy(gameRange);
+                        }
+                        attackRange.Clear();
+                    }
+                }
+                break;
+            case SignType.AttackableMove:  // 可移动并攻击的范围
+                {
+                    if (attackableMoveRange.Count > 0)
+                    {
+                        foreach (GameObject gameRange in attackableMoveRange)
+                        {
+                            Destroy(gameRange);
+                        }
+                        attackableMoveRange.Clear();
+                    }
+                }
+                break;
+        }
+    }
+
+    /// <summary>
+    /// 清空所有的范围显示
+    /// </summary>
+    public void ClearAllRange()
     {
         if (moveRange.Count > 0)
         {
@@ -122,5 +202,34 @@ public class UIManager : MonoBehaviour
             }
             moveRange.Clear();
         }
+        if (attackRange.Count > 0)
+        {
+            foreach (GameObject gameRange in attackRange)
+            {
+                Destroy(gameRange);
+            }
+            attackRange.Clear();
+        }
+        if (attackableMoveRange.Count > 0)
+        {
+            foreach (GameObject gameRange in attackableMoveRange)
+            {
+                Destroy(gameRange);
+            }
+            attackableMoveRange.Clear();
+        }
+    }
+
+    public void ShowMsgDlg(List<MsgDlgButtonInfo> commandButtons)
+    {
+        msgDlg.gameObject.SetActive(true);
+        msgDlg.CreateMsgDlg(commandButtons);
+    }
+
+    public void HideMsgDlg()
+    {
+        msgDlg.gameObject.SetActive(false);
     }
 }
+
+
