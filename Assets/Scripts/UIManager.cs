@@ -8,10 +8,12 @@ public class UIManager : MonoBehaviour
     private List<GameObject> attackRange = new List<GameObject>();
     private List<GameObject> attackableMoveRange = new List<GameObject>();
     private MsgDlg msgDlg;
+    private Transform msgCanvasTransform; 
+    private string msgdlgPath = "Prefabs/UI/Msgdlg";
 
     private void Awake() {
-        msgDlg = new MsgDlg();
-        msgDlg.gameObject.SetActive(false);  // 一开始先把它隐藏掉
+       msgCanvasTransform = GameObject.Find("Canvas").transform;
+
     }
 
     ///<summary>
@@ -90,7 +92,7 @@ public class UIManager : MonoBehaviour
 
     public void AddRange(SignType signType, Vector2Int gridPos)
     {
-        GameObject grid = new GameObject();
+        GameObject grid = null;
         switch (signType)
         {
             case SignType.Move:  // 移动范围
@@ -222,13 +224,35 @@ public class UIManager : MonoBehaviour
 
     public void ShowMsgDlg(List<MsgDlgButtonInfo> commandButtons)
     {
-        msgDlg.gameObject.SetActive(true);
-        msgDlg.CreateMsgDlg(commandButtons);
+        if (msgDlg == null)
+        {
+            GameObject msgDlgObject = Instantiate<GameObject>(Resources.Load<GameObject>(msgdlgPath));
+            msgDlgObject.transform.SetParent(msgCanvasTransform);  // transform set parent 了之后 gameobject也就setParent了 
+            msgDlgObject.transform.localPosition = new Vector3(180,180,0);  // set一下localPosition 不然 就会在左下角生成
+            msgDlgObject.transform.localScale = Vector3.one;
+            msgDlg = msgDlgObject.GetComponent<MsgDlg>();
+            msgDlgObject.SetActive(true);
+            msgDlg.CreateMsgDlg(commandButtons);
+        }
+        else
+        {
+            msgDlg.gameObject.SetActive(true);
+            msgDlg.CreateMsgDlg(commandButtons);
+        }
+
     }
 
     public void HideMsgDlg()
     {
         msgDlg.gameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// 调用msgdlg 根据鼠标位置 返回对应命令index 如果鼠标不在UI范围内就返回nullIndex
+    /// </summary>
+    public void GetIndexByPoint(Vector2 pointerPosition)
+    {
+        msgDlg.GetIndexByPoint(pointerPosition);
     }
 }
 

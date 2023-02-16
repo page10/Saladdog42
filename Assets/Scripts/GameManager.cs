@@ -16,6 +16,7 @@ public class GameManager : MonoBehaviour
     private GameObject currEnemy; //当前选中的敌人
     private MapGenerator mapGenerator;
     private UIManager uiManager;
+    private Vector2 currMousePosition;  // 当前鼠标位置
 
 
     // 之后要被重构掉的东西
@@ -42,6 +43,7 @@ public class GameManager : MonoBehaviour
     public int waitTick = 0;
     private void FixedUpdate()
     {
+
         switch (GameState.gameControlState)
         {
             case GameControlState.NewTurn:
@@ -255,7 +257,7 @@ public class GameManager : MonoBehaviour
                         if (!statusChain)  // 我还没选敌人
                         {
                             bool hasReachableEnemies = hasAttackableCharacters();  //检查周围还有没有可攻击的敌人或友方
-                            
+                            uiManager.ShowMsgDlg(msgDlgButtonInfos);  // 测试用 传一个写死的按钮组数据
                             // 下一步写指令菜单
                             if (hasReachableEnemies)
                             {
@@ -286,6 +288,7 @@ public class GameManager : MonoBehaviour
                 break;
             case GameControlState.SelectAttackObject:
                 {
+                    SetUIPointerIndex();  // 这个位置可能之后再改
                     if (Input.GetMouseButton(0) && waitTick <= 0)
                     {
                         Vector2Int currSelectGrid = movementManager.GetGridPosition(
@@ -575,5 +578,15 @@ public class GameManager : MonoBehaviour
         return false;
         
     }
+
+    /// <summary>
+    /// 拿鼠标位置 传给UImanager 设置选中命令index
+    /// </summary>
+    private void SetUIPointerIndex()
+    {
+        currMousePosition = Input.mousePosition;  // 直接用屏幕坐标就行 不用转换成worldPoint
+        uiManager.GetIndexByPoint(currMousePosition);
+    }
+    // 02132023 现在还不对 鼠标位置坐标系和判断用的UI坐标系不统一 得转一下
 
 }
