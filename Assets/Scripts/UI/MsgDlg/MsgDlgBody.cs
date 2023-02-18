@@ -42,7 +42,7 @@ public class MsgDlgBody : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
     }
     public void OnPointerExit(PointerEventData pointerEventData)
     {
-        Debug.Log("Cursor Exiting " + name + " GameObject");
+//        Debug.Log("Cursor Exiting " + name + " GameObject");
     }
 
 

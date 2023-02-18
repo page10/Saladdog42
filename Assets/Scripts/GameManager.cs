@@ -12,7 +12,7 @@ public class GameManager : MonoBehaviour
 
     private int playerCount = 2;
     private List<CharacterObject>[] characters;  // all rabbits(characters)
-    private GameObject selectedCharacter;  // selected character
+    private CharacterObject selectedCharacter;  // selected character
     private GameObject currEnemy; //当前选中的敌人
     private MapGenerator mapGenerator;
     private UIManager uiManager;
@@ -81,16 +81,16 @@ public class GameManager : MonoBehaviour
                         SelectedCharacterInfo currentCharacter = GetCharacterInSelectedGrid(selectedGridPos);
                         if (currentCharacter.playerIndex == currentPlayerIndex)  // 选中了我方角色
                         {
-                            selectedCharacter = characters[currentCharacter.playerIndex][currentCharacter.characterIndex].gameObject;
+                            selectedCharacter = characters[currentCharacter.playerIndex][currentCharacter.characterIndex];
                             if (characters[currentPlayerIndex][currentCharacter.characterIndex].animator.IsMoveFinished(false) == true)  // 移动完了
                             {
                                 Debug.Log("test");
                             }
                             else // 还没移动
                             {
-                                movementManager.GetMoveRange(selectedCharacter.GetComponent<CharacterMovement>(), GetOccupiedGrids(currentCharacter), GetAllyGrids(currentCharacter));
+                                movementManager.GetMoveRange(selectedCharacter.gameObject.GetComponent<CharacterMovement>(), GetOccupiedGrids(currentCharacter), GetAllyGrids(currentCharacter));
                                 uiManager.ShowMoveRange(movementManager.LogicMoveRange);
-                                uiManager.ShowAttackRange(selectedCharacter.GetComponent<CharacterAttack>(), MovementManager.GetV2IntFromDijkstraRange(movementManager.LogicMoveRange), mapGenerator.mapSize);  //拿到攻击范围V2Int List
+                                uiManager.ShowAttackRange(selectedCharacter.gameObject.GetComponent<CharacterAttack>(), MovementManager.GetV2IntFromDijkstraRange(movementManager.LogicMoveRange), mapGenerator.mapSize);  //拿到攻击范围V2Int List
                                 GameState.gameControlState = GameControlState.ShowRange;
                                 waitTick = 10;
                             }
@@ -105,11 +105,6 @@ public class GameManager : MonoBehaviour
                             
                         }
 
-                        //Debug.Log("mouseClicked");
-                        //selectedCharacter = characters[0][0].gameObject;  //修改这个 根据鼠标位置选择   
-                        //movementManager.GetMoveRange(selectedCharacter.GetComponent<CharacterMovement>());
-
-
                     }
                 }
                 break;
@@ -121,7 +116,7 @@ public class GameManager : MonoBehaviour
                                 currentCamera.ScreenToWorldPoint(Input.mousePosition));
                         SelectedCharacterInfo currentCharacter = GetCharacterInSelectedGrid(currSelectGrid);
 
-                        Vector2Int characterGrid = selectedCharacter.GetComponent<GridPosition>().grid;  // 自己那格
+                        Vector2Int characterGrid = selectedCharacter.gameObject.GetComponent<GridPosition>().grid;  // 自己那格
                         //Debug.Log("currSelectGrid , characterGrid" + currSelectGrid + "  " + characterGrid);
                         if (currentCharacter.playerIndex == 0 && currSelectGrid != characterGrid)
                         {
@@ -153,13 +148,13 @@ public class GameManager : MonoBehaviour
                                     uiManager.AddRange(SignType.Move, moveGrids[i]);
                                 }
 
-                                if (selectedCharacter == null)
+                                if (selectedCharacter.gameObject == null)
                                 {
                                     GameState.gameControlState = GameControlState.SelectCharacter;
                                     waitTick = 10;
                                     return;
                                 }
-                                AnimatorController animatorController = selectedCharacter.GetComponent<AnimatorController>();
+                                AnimatorController animatorController = selectedCharacter.gameObject.GetComponent<AnimatorController>();
                                 if (animatorController != null)
                                 {
                                     animatorController.StartMove(moveGrids);
@@ -181,7 +176,7 @@ public class GameManager : MonoBehaviour
                     // 找这个攻击范围 和我可移动范围的交集 
                     // 显示交集内的格子 不显示其他格子
 
-                List<Vector2Int> currAttackRange = selectedCharacter.GetComponent<CharacterAttack>().GetAttackRange(currEnemy.GetComponent<GridPosition>().grid, mapGenerator.mapSize, Constants.TargetType_Foe);
+                List<Vector2Int> currAttackRange = selectedCharacter.gameObject.GetComponent<CharacterAttack>().GetAttackRange(currEnemy.GetComponent<GridPosition>().grid, mapGenerator.mapSize, Constants.TargetType_Foe);
                 List<DijkstraMoveInfo> currMoveRange = movementManager.LogicMoveRange;
 
                 List<Vector2Int> attackableArea = new List<Vector2Int>();
@@ -220,7 +215,7 @@ public class GameManager : MonoBehaviour
                                     uiManager.AddRange(SignType.Move,moveGrids[i]);
                                 }
 
-                                AnimatorController animatorController = selectedCharacter.GetComponent<AnimatorController>();
+                                AnimatorController animatorController = selectedCharacter.gameObject.GetComponent<AnimatorController>();
                                 if (animatorController != null)
                                 {
                                     animatorController.StartMove(moveGrids);
@@ -243,14 +238,14 @@ public class GameManager : MonoBehaviour
                 break;
             case GameControlState.CharacterMoving:
                 {
-                    if (selectedCharacter == null)
+                    if (selectedCharacter.gameObject == null)
                     {
                         GameState.gameControlState = GameControlState.SelectCharacter;
                         waitTick = 10;
                         uiManager.ClearAllRange();
                         return;
                     }
-                    MoveByPath moveByPath = selectedCharacter.GetComponent<MoveByPath>();
+                    MoveByPath moveByPath = selectedCharacter.gameObject.GetComponent<MoveByPath>();
                     if (moveByPath == null || moveByPath.IsMoving == false)  //这次移动移动完成
                     {
                         uiManager.ClearAllRange();
@@ -373,16 +368,15 @@ public class GameManager : MonoBehaviour
     private List<MsgDlgButtonInfo> GetMsgDlgButtonInfos()
     {
         List<MsgDlgButtonInfo> currentMsgDlgButtonInfos = new List<MsgDlgButtonInfo>();
-        bool canAttack = CheckAttackAbility();
-        bool canHeal = CheckHealAbility();
+        byte abilities = CheckAbilities(selectedCharacter);
         bool canExchangeItem = CheckExchangeItemAbility();
         bool canAccessBackup = CheckAccessBackupAbility();
 
-        if (canAttack)
+        if ((Constants.TargetType_Foe&abilities) == Constants.TargetType_Foe)
         {
             currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Attack", () => {DebugLogEvent("Attack");}));
         }
-        if (canHeal)
+        if ((Constants.TargetType_Ally&abilities) == Constants.TargetType_Ally)
         {
             currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Heal", () => {DebugLogEvent("Heal");}));
         }
@@ -396,9 +390,10 @@ public class GameManager : MonoBehaviour
         }
 
         // 以下是啥时候都要加的按钮
-        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Cancel", () => {DebugLogEvent("Cancel");}));  
-        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Pass", () => {DebugLogEvent("Pass");}));
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Wait", () => {DebugLogEvent("Wait");}));
         currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Inventory", () => {DebugLogEvent("Inventory");}));
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Cancel", () => {DebugLogEvent("Cancel");}));  
+
 
         return currentMsgDlgButtonInfos;
 
@@ -410,35 +405,27 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 检查周围是否有可攻击的对象
+    /// 检查周围是否有可攻击或治疗的对象
     /// </summary>
-    private bool CheckAttackAbility()
+    private byte CheckAbilities(CharacterObject selectedCharacterObject)
     {
-        List<Vector2Int> currMoveRange = new List<Vector2Int>();  // 移动完之后 只能以它自己脚下那一格为移动范围去搜索攻击范围
-        Vector2Int currPos = selectedCharacter.GetComponent<GridPosition>().grid;  // 当前位置
+        List<Vector2Int> currMoveRange = new List<Vector2Int>();  // 移动完之后 只能以它自己脚下那一格为移动范围去搜索范围
+        Vector2Int currPos = selectedCharacterObject.gameObject.GetComponent<GridPosition>().grid;  // 当前位置
         currMoveRange.Add(currPos);
-        List<Vector2Int> currAttackRange = selectedCharacter.GetComponent<CharacterAttack>().GetAttackRange(currPos, mapGenerator.mapSize, Constants.TargetType_Foe);
+        byte targets = 0b0;
 
-        for (int i = 1; i < playerCount; i++)
+        List<CoveredRange> currRange = selectedCharacterObject.gameObject.GetComponent<CharacterAttack>().GetWeaponRange(currPos, mapGenerator.mapSize);
+        foreach (CoveredRange range in currRange)
         {
-            for (int j = 0; j < characters[i].Count; j++)
+            SelectedCharacterInfo selectedCharacterInfo = GetCharacterInSelectedGrid(range.gridPos);
+            if (selectedCharacterInfo.IsNull() == false)
             {
-                if (currAttackRange.Contains(characters[i][j].gPos.grid))
-                {
-                    return true; // 有打得到的地方角色
-                }
-            }
+                byte relation = selectedCharacterObject.GetRelation(characters[selectedCharacterInfo.playerIndex][selectedCharacterInfo.characterIndex]);
+                targets |= (byte)(relation & range.targetType);
+            }          
         }
 
-        return false;
-    }
-
-    /// <summary>
-    /// 检查周围是否有可治疗的友军
-    /// </summary>   
-    private bool CheckHealAbility()
-    {
-        return false;  // debug用 一会删
+        return targets;
     }
 
     /// <summary>
@@ -457,8 +444,6 @@ public class GameManager : MonoBehaviour
         return false;  // debug用 一会删
     }
          
-
- 
 
     private List<Vector2Int> GetOccupiedGrids(SelectedCharacterInfo currentCharacter)
     {
@@ -643,34 +628,10 @@ public class GameManager : MonoBehaviour
         {
             attack.AddWeapon(new WeaponObj(1, 1, 2, Constants.TargetType_Foe));
             attack.weaponCurIndex = 0;
+            attack.AddWeapon(new WeaponObj(1, 1, 3, Constants.TargetType_Ally));
         }
         characters[playerIndex].Add(new CharacterObject(gPos, slaveTo, animator, attack));
     }
-
-    // /// <summary>
-    // /// 检查移动之后攻击范围内的所有敌人和友方
-    // /// </summary>
-    // private bool hasAttackableCharacters()
-    // {
-    //     List<Vector2Int> currMoveRange = new List<Vector2Int>();  // 移动完之后 只能以它自己脚下那一格为移动范围去搜索攻击范围
-    //     Vector2Int currPos = selectedCharacter.GetComponent<GridPosition>().grid;  // 当前位置
-    //     currMoveRange.Add(currPos);
-    //     List<Vector2Int> currAttackRange = selectedCharacter.GetComponent<CharacterAttack>().GetAttackRange(currPos, mapGenerator.mapSize, true);
-
-    //     for (int i = 1; i < playerCount; i++)
-    //     {
-    //         for (int j = 0; j < characters[i].Count; j++)
-    //         {
-    //             if (currAttackRange.Contains(characters[i][j].gPos.grid))
-    //             {
-    //                 return true; // 有可交互的敌方或者我方角色
-    //             }
-    //         }
-    //     }
-
-    //     return false;
-        
-    // }
 
 
 }

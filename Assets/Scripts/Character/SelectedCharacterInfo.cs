@@ -1,3 +1,4 @@
+using Microsoft.VisualBasic;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -11,5 +12,10 @@ public struct SelectedCharacterInfo
     {
         this.playerIndex = playerIndex;
         this.characterIndex = characterIndex;
+    }
+
+    public bool IsNull()
+    {
+        return (playerIndex == Constants.nullPlayerIndex) || (characterIndex == Constants.nullCharacterIndex) ;
     }
 }

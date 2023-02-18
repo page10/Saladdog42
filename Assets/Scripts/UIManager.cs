@@ -21,55 +21,6 @@ public class UIManager : MonoBehaviour
 
     }
 
-    // ///<summary>
-    // /// 根据选中的角色和对应移动范围，得到操作类型和对应的操作范围
-    // ///</summary>
-    // // 02172023 把这个函数重构以下 原本返回的List V2Int改成 List<敌人类型和V2int的struct> 
-    // // 估计之后还得对应改显示相关的函数
-    // private List<CoveredRange>[] GetAttackRange(CharacterAttack characterAttack, List<Vector2Int> moveRange, Vector2Int mapSize)
-    // {
-    //     //if (moveRange.Count == 0) return new List<CoveredRange>();
-    //     GridPosition currGridPos = characterAttack.gameObject.GetComponent<GridPosition>();
-
-    //     List<CoveredRange>[] coverRange = new List<CoveredRange>[2];
-    //     List<CoveredRange> atkRange = new List<CoveredRange>();
-    //     for (int i = 0; i < moveRange.Count; i++)
-    //     {
-    //         List<Vector2Int> thisGridAtkRange = characterAttack.GetAttackRange(moveRange[i], mapSize, Constants.TargetType_Foe);
-    //         for (int j = 0; j < thisGridAtkRange.Count; j++)
-    //         {
-    //             CoveredRange currRange = new CoveredRange(Constants.TargetType_Foe,thisGridAtkRange[j]);
-    //             if (!atkRange.Contains(currRange) && thisGridAtkRange[j] != currGridPos.grid)
-    //             {
-    //                 atkRange.Add(currRange);
-    //             }
-    //         }
-    //     }
-    //     //atkRange.Remove(currGridPos.grid);  // 去掉我自己
-
-    //     List<CoveredRange> healRange = new List<CoveredRange>();
-    //     for (int i = 0; i < moveRange.Count; i++)
-    //     {
-    //         List<Vector2Int> thisGridhealRange = characterAttack.GetAttackRange(moveRange[i], mapSize, Constants.TargetType_Ally);
-    //         for (int j = 0; j < thisGridhealRange.Count; j++)
-    //         {
-    //             CoveredRange currhealRange = new CoveredRange(Constants.TargetType_Ally,thisGridhealRange[j]);
-    //             if (!healRange.Contains(currhealRange))
-    //             {
-    //                 healRange.Add(currhealRange);
-    //             }
-    //         }
-    //     }
-
-    //     List<CoveredRange> selfRange = new List<CoveredRange>();
-    //     CoveredRange currSelfRange = new CoveredRange(Constants.TargetType_Ally,currGridPos.grid);
-
-
-
-    //     return coverRange;
-
-    // }
-
     private void GetCoveredRange(CharacterAttack characterAttack, List<Vector2Int> moveRange, Vector2Int mapSize)
     {
         logicCoverRange.Clear();
@@ -295,13 +246,7 @@ public class UIManager : MonoBehaviour
         msgDlg.gameObject.SetActive(false);
     }
 
-    // /// <summary>
-    // /// 调用msgdlg 根据鼠标位置 返回对应命令index 如果鼠标不在UI范围内就返回nullIndex
-    // /// </summary>
-    // public void GetIndexByPoint(Vector2 pointerPosition)
-    // {
-    //     msgDlg.GetIndexByPoint(pointerPosition);
-    // }
+
 }
 
 

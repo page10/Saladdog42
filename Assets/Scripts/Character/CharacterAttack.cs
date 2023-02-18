@@ -67,13 +67,6 @@ public class CharacterAttack : MonoBehaviour
     public List<Vector2Int> GetAttackRange(Vector2Int gridPos, Vector2Int mapSize, byte target)  
     {
         List<Vector2Int> atkRange = new List<Vector2Int>();
-        // if (isAllWeapon == true)  //用所有的武器算攻击范围
-        // {
-        //     curMinRange = GetWeaponMinRange(Constants.TargetType_Foe);  // 对敌方使用的武器的最小范围
-        //     curMaxRange = GetWeaponMaxRange(Constants.TargetType_Foe);  // 对敌方使用的武器的最大范围
-        // }
-        //bool temp = (target & (Constants.TargetType_Foe | Constants.TargetType_Self)) == (Constants.TargetType_Foe | Constants.TargetType_Self);
-
         
         int curMinRange = GetWeaponMinRange(target);  // 对敌方使用的武器的最小范围
         int curMaxRange = GetWeaponMaxRange(target);  // 对敌方使用的武器的最大范围
@@ -151,7 +144,5 @@ public class CharacterAttack : MonoBehaviour
 
         return weaponRange;
     }
-
-
 
 }
