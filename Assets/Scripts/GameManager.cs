@@ -181,7 +181,7 @@ public class GameManager : MonoBehaviour
                     // 找这个攻击范围 和我可移动范围的交集 
                     // 显示交集内的格子 不显示其他格子
 
-                List<Vector2Int> currAttackRange = selectedCharacter.GetComponent<CharacterAttack>().GetAttackRange(currEnemy.GetComponent<GridPosition>().grid, mapGenerator.mapSize, true);
+                List<Vector2Int> currAttackRange = selectedCharacter.GetComponent<CharacterAttack>().GetAttackRange(currEnemy.GetComponent<GridPosition>().grid, mapGenerator.mapSize, Constants.TargetType_Foe);
                 List<DijkstraMoveInfo> currMoveRange = movementManager.LogicMoveRange;
 
                 List<Vector2Int> attackableArea = new List<Vector2Int>();
@@ -256,17 +256,19 @@ public class GameManager : MonoBehaviour
                         uiManager.ClearAllRange();
                         if (!statusChain)  // 我还没选敌人
                         {
-                            bool hasReachableEnemies = hasAttackableCharacters();  //检查周围还有没有可攻击的敌人或友方
-                            uiManager.ShowMsgDlg(msgDlgButtonInfos);  // 测试用 传一个写死的按钮组数据
-                            // 下一步写指令菜单
-                            if (hasReachableEnemies)
-                            {
-                                GameState.gameControlState = GameControlState.WeaponSelect;  //选择武器
-                            }
-                            else
-                            {
-                                GameState.gameControlState = GameControlState.CharacterMoveDone;  //一个角色移动完成
-                            }
+                            msgDlgButtonInfos = GetMsgDlgButtonInfos();
+                            //这个hasReachableEnemies的判定得改掉 用现在新的菜单列表去管理状态
+                            //bool hasReachableEnemies = hasAttackableCharacters();  //检查周围还有没有可攻击的敌人或友方 
+                            uiManager.ShowMsgDlg(msgDlgButtonInfos);  
+                            //if (hasReachableEnemies)
+                            //{
+                            //     GameState.gameControlState = GameControlState.WeaponSelect;  //选择武器
+                            // }
+                            // else
+                            // {
+                            //     GameState.gameControlState = GameControlState.CharacterMoveDone;  //一个角色移动完成
+                            // }
+                            GameState.gameControlState = GameControlState.ShowCommandMenu;  // 进入菜单选指令阶段
                             waitTick = 10;
                         }
                         else  // 我之前已经选过敌人了
@@ -288,7 +290,7 @@ public class GameManager : MonoBehaviour
                 break;
             case GameControlState.SelectAttackObject:
                 {
-                    SetUIPointerIndex();  // 这个位置可能之后再改
+                    // SetUIPointerIndex();  // 这个位置可能之后再改
                     if (Input.GetMouseButton(0) && waitTick <= 0)
                     {
                         Vector2Int currSelectGrid = movementManager.GetGridPosition(
@@ -364,6 +366,99 @@ public class GameManager : MonoBehaviour
         }
 
     }
+
+    /// <summary>
+    /// 获取当前所有可执行的按钮信息列表
+    /// </summary>
+    private List<MsgDlgButtonInfo> GetMsgDlgButtonInfos()
+    {
+        List<MsgDlgButtonInfo> currentMsgDlgButtonInfos = new List<MsgDlgButtonInfo>();
+        bool canAttack = CheckAttackAbility();
+        bool canHeal = CheckHealAbility();
+        bool canExchangeItem = CheckExchangeItemAbility();
+        bool canAccessBackup = CheckAccessBackupAbility();
+
+        if (canAttack)
+        {
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Attack", () => {DebugLogEvent("Attack");}));
+        }
+        if (canHeal)
+        {
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Heal", () => {DebugLogEvent("Heal");}));
+        }
+        if (canExchangeItem)
+        {
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("canExchangeItem", () => {DebugLogEvent("canExchangeItem");}));
+        }
+        if (canAccessBackup)
+        {
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("AccessBackup", () => {DebugLogEvent("AccessBackup");}));
+        }
+
+        // 以下是啥时候都要加的按钮
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Cancel", () => {DebugLogEvent("Cancel");}));  
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Pass", () => {DebugLogEvent("Pass");}));
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Inventory", () => {DebugLogEvent("Inventory");}));
+
+        return currentMsgDlgButtonInfos;
+
+    }
+
+    private void DebugLogEvent(string eventData)  // 测试时候用的函数 打个log
+    {
+        Debug.Log(eventData);
+    }
+
+    /// <summary>
+    /// 检查周围是否有可攻击的对象
+    /// </summary>
+    private bool CheckAttackAbility()
+    {
+        List<Vector2Int> currMoveRange = new List<Vector2Int>();  // 移动完之后 只能以它自己脚下那一格为移动范围去搜索攻击范围
+        Vector2Int currPos = selectedCharacter.GetComponent<GridPosition>().grid;  // 当前位置
+        currMoveRange.Add(currPos);
+        List<Vector2Int> currAttackRange = selectedCharacter.GetComponent<CharacterAttack>().GetAttackRange(currPos, mapGenerator.mapSize, Constants.TargetType_Foe);
+
+        for (int i = 1; i < playerCount; i++)
+        {
+            for (int j = 0; j < characters[i].Count; j++)
+            {
+                if (currAttackRange.Contains(characters[i][j].gPos.grid))
+                {
+                    return true; // 有打得到的地方角色
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 检查周围是否有可治疗的友军
+    /// </summary>   
+    private bool CheckHealAbility()
+    {
+        return false;  // debug用 一会删
+    }
+
+    /// <summary>
+    /// 检查周围是否有可交换物品的友军
+    /// </summary>     
+    private bool CheckExchangeItemAbility()
+    {
+        return false;  // debug用 一会删
+    }
+
+    /// <summary>
+    /// 检查是否可以使用运输队
+    /// </summary>       
+    private bool CheckAccessBackupAbility()
+    {
+        return false;  // debug用 一会删
+    }
+         
+
+ 
 
     private List<Vector2Int> GetOccupiedGrids(SelectedCharacterInfo currentCharacter)
     {
@@ -552,41 +647,30 @@ public class GameManager : MonoBehaviour
         characters[playerIndex].Add(new CharacterObject(gPos, slaveTo, animator, attack));
     }
 
-    /// <summary>
-    /// 检查移动之后攻击范围内的所有敌人和友方
-    /// </summary>
-    private bool hasAttackableCharacters()
-    {
-        //List<CharacterObject> reachableCharacters = new List<CharacterObject>();
-        List<Vector2Int> currMoveRange = new List<Vector2Int>();  // 移动完之后 只能以它自己脚下那一格为移动范围去搜索攻击范围
-        Vector2Int currPos = selectedCharacter.GetComponent<GridPosition>().grid;  // 当前位置
-        currMoveRange.Add(currPos);
-        //uiManager.ShowAttackRange(selectedCharacter.GetComponent<CharacterAttack>(), currMoveRange, mapGenerator.mapSize);  //总觉得不该在这调用
-        List<Vector2Int> currAttackRange = selectedCharacter.GetComponent<CharacterAttack>().GetAttackRange(currPos, mapGenerator.mapSize, true);
+    // /// <summary>
+    // /// 检查移动之后攻击范围内的所有敌人和友方
+    // /// </summary>
+    // private bool hasAttackableCharacters()
+    // {
+    //     List<Vector2Int> currMoveRange = new List<Vector2Int>();  // 移动完之后 只能以它自己脚下那一格为移动范围去搜索攻击范围
+    //     Vector2Int currPos = selectedCharacter.GetComponent<GridPosition>().grid;  // 当前位置
+    //     currMoveRange.Add(currPos);
+    //     List<Vector2Int> currAttackRange = selectedCharacter.GetComponent<CharacterAttack>().GetAttackRange(currPos, mapGenerator.mapSize, true);
 
-        for (int i = 1; i < playerCount; i++)
-        {
-            for (int j = 0; j < characters[i].Count; j++)
-            {
-                if (currAttackRange.Contains(characters[i][j].gPos.grid))
-                {
-                    return true; // 有可交互的敌方或者我方角色
-                }
-            }
-        }
+    //     for (int i = 1; i < playerCount; i++)
+    //     {
+    //         for (int j = 0; j < characters[i].Count; j++)
+    //         {
+    //             if (currAttackRange.Contains(characters[i][j].gPos.grid))
+    //             {
+    //                 return true; // 有可交互的敌方或者我方角色
+    //             }
+    //         }
+    //     }
 
-        return false;
+    //     return false;
         
-    }
+    // }
 
-    /// <summary>
-    /// 拿鼠标位置 传给UImanager 设置选中命令index
-    /// </summary>
-    private void SetUIPointerIndex()
-    {
-        currMousePosition = Input.mousePosition;  // 直接用屏幕坐标就行 不用转换成worldPoint
-        uiManager.GetIndexByPoint(currMousePosition);
-    }
-    // 02132023 现在还不对 鼠标位置坐标系和判断用的UI坐标系不统一 得转一下
 
 }

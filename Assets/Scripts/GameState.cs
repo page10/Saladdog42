@@ -11,6 +11,7 @@ public enum GameControlState
     WeaponSelect,
     SelectAttackObject,
     ShowAttackableArea,  // 显示可以移动去的攻击位置
+    ShowCommandMenu, // 指令菜单显示
     ConfirmWeapon,
     Attack,
     CharacterMoveDone, 

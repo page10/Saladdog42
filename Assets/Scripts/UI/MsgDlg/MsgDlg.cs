@@ -8,9 +8,16 @@ using UnityEngine;
 public class MsgDlg : MonoBehaviour
 {
     private MsgDlgBottom msgDlgBottom;
+    private MsgdlgBodiesContainer msgdlgBodiesContainer;  // 存放bodies的container 解决一下显示层级问题
     private string bodyPrefabPath = "Prefabs/UI/MsgDlgBody";
     private List<MsgDlgBody> bodies = new List<MsgDlgBody>();  // 存放按钮body的list
-    private int pointerCommandIndex;  // 鼠标选中的命令index
+    //private int pointerCommandIndex;  // 鼠标选中的命令index 现在用不到了
+    private SelectSign selectSign;  // 选中命令高亮框
+
+    private void Awake() {
+        selectSign = GetComponentInChildren<SelectSign>();
+        msgdlgBodiesContainer = GetComponentInChildren<MsgdlgBodiesContainer>();
+    }
 
     /// <summary>
     /// 根据传入的按钮信息list 对应排列UI 数量和位置
@@ -28,12 +35,11 @@ public class MsgDlg : MonoBehaviour
         }
         for (int i = 0; i < commandButtons.Count; i++)
         {
-            bodies[i].SetMbutton(commandButtons[i], i);
+            bodies[i].SetMbutton(commandButtons[i], i, BodyOnSelected);
         }
         msgDlgBottom = gameObject.GetComponentInChildren<MsgDlgBottom>();  // 拿到小孩里的msgDlgBottom
         msgDlgBottom.gameObject.GetComponent<RectTransform>().localPosition = new Vector2(0, -(commandButtons.Count + 1) * MsgDlgBody.bodyHeight);
     }
-    // 02112023 下一步 找到可以执行的操作 生成传入List<MsgDlgButton>
 
     
     /// <summary>
@@ -46,8 +52,8 @@ public class MsgDlg : MonoBehaviour
         if (msgDlgBody != null)
         {
             bodies.Add(msgDlgBody);
-            msgDlgBody.SetMbutton(button,index);
-            msgDlgBody.transform.SetParent(transform);  // 设置父级 树形展开 谁是枝 坐标会跟着父级动
+            msgDlgBody.SetMbutton(button,index,BodyOnSelected);
+            msgDlgBody.transform.SetParent(msgdlgBodiesContainer.transform);  // 设置父级 树形展开 谁是枝 坐标会跟着父级动
         }       
     }
 
@@ -56,33 +62,10 @@ public class MsgDlg : MonoBehaviour
         GameObject.Destroy(body.gameObject);
     }
 
-    /// <summary>
-    /// 根据鼠标位置 返回对应命令index 如果鼠标不在UI范围内就返回nullIndex
-    /// </summary>
-    // public void GetIndexByPoint(Vector2 pointerPosition)  
-    // {
-    //     RectTransform rect = transform.GetComponent<RectTransform>();  // 我自己的rect
-    //     if (
-    //         pointerPosition.x < rect.position.x - rect.sizeDelta.x / 2 || 
-    //         pointerPosition.x > rect.position.x + rect.sizeDelta.x / 2 || 
-    //         pointerPosition.y < rect.position.y - rect.sizeDelta.y / 2 * bodies.Count|| 
-    //         pointerPosition.y > rect.position.y + rect.sizeDelta.y / 2 
-    //     )  // 光标没有在UI框范围内
-    //     {
-    //         pointerCommandIndex = Constants.nullCommandIndex;  // 没选中任何命令
-    //         Debug.Log("pointerPosition : " + pointerPosition);
-    //         Debug.Log("pointerCommandIndex : " + pointerCommandIndex);
-    //         return;
-    //     }
-    //     else
-    //     {
-    //         pointerCommandIndex = (int)((pointerPosition.y - rect.position.y + rect.sizeDelta.y / 2) / rect.sizeDelta.y);
-    //         Debug.Log("pointerPosition : " + pointerPosition);
-    //         Debug.Log("pointerCommandIndex : " + pointerCommandIndex);
-    //     }
-    //     return;
-    // }
+    private void BodyOnSelected (int idx) {
+        selectSign.gameObject.GetComponent<RectTransform>().localPosition = new Vector2(0, -(idx + 1) * MsgDlgBody.bodyHeight);
+    }
 
-    
+  
     
 }

@@ -59,18 +59,24 @@ public class CharacterAttack : MonoBehaviour
     }
 
     /// <summary>
-    /// 获得所有的可攻击范围格子
+    /// 获得所有的可触及范围格子
+    /// <param name="gridPos">检查的范围的中心</param> 
+    /// <param name="mapSize">地图宽高 避免得到地图外格子</param> 
+    /// <param name="target">触及对象的类型</param> 
     /// </summary>
-    public List<Vector2Int> GetAttackRange(Vector2Int gridPos, Vector2Int mapSize, bool isAllWeapon)  
+    public List<Vector2Int> GetAttackRange(Vector2Int gridPos, Vector2Int mapSize, byte target)  
     {
         List<Vector2Int> atkRange = new List<Vector2Int>();
-        int curMinRange = weapons[weaponCurIndex].minRange;
-        int curMaxRange = weapons[weaponCurIndex].maxRange;
-        if (isAllWeapon == true)  //用所有的武器算攻击范围
-        {
-            curMinRange = GetWeaponMinRange(Constants.TargetType_Foe);  // 对敌方使用的武器的最小范围
-            curMaxRange = GetWeaponMaxRange(Constants.TargetType_Foe);  // 对敌方使用的武器的最大范围
-        }
+        // if (isAllWeapon == true)  //用所有的武器算攻击范围
+        // {
+        //     curMinRange = GetWeaponMinRange(Constants.TargetType_Foe);  // 对敌方使用的武器的最小范围
+        //     curMaxRange = GetWeaponMaxRange(Constants.TargetType_Foe);  // 对敌方使用的武器的最大范围
+        // }
+        //bool temp = (target & (Constants.TargetType_Foe | Constants.TargetType_Self)) == (Constants.TargetType_Foe | Constants.TargetType_Self);
+
+        
+        int curMinRange = GetWeaponMinRange(target);  // 对敌方使用的武器的最小范围
+        int curMaxRange = GetWeaponMaxRange(target);  // 对敌方使用的武器的最大范围
 
         for (int i = -curMaxRange; i <= curMaxRange; i++)
         {
@@ -91,9 +97,61 @@ public class CharacterAttack : MonoBehaviour
                     }
             }
         }
-
-
         return atkRange;
     }
+
+    /// <summary>
+    /// 获得各武器的攻击或治疗范围
+    /// <param name="gridPos">检查的范围的中心</param> 
+    /// <param name="mapSize">地图宽高 避免得到地图外格子</param> 
+    /// </summary>
+    public List<CoveredRange> GetWeaponRange(Vector2Int gridPos, Vector2Int mapSize)
+    {
+        List<CoveredRange> weaponRange = new List<CoveredRange>();
+
+        int WeaponRangeIndex(Vector2Int checkPos){
+            for(int _i = 0; _i < weaponRange.Count; _i++)
+            {
+                if (weaponRange[_i].gridPos == checkPos) return _i;
+            }
+            return -1;
+        }
+
+        foreach (WeaponObj weapon in weapons)
+        {
+            for (int i = -weapon.maxRange; i <= weapon.maxRange; i++)
+            {
+                for (int j = -weapon.maxRange; j <= weapon.maxRange; j++)
+                {
+                    Vector2Int addGrid = new Vector2Int();
+                    addGrid.x = gridPos.x + i;
+                    addGrid.y = gridPos.y + j;
+
+                    if (addGrid.x < mapSize.x && 
+                        addGrid.y < mapSize.y && 
+                        addGrid.x >= 0 && addGrid.y >= 0 &&
+                        (Mathf.Abs(i) + Mathf.Abs(j)) <= weapon.maxRange &&  
+                        (Mathf.Abs(i) + Mathf.Abs(j)) >= weapon.minRange 
+                        )  
+                        {
+                            int index = WeaponRangeIndex(addGrid);
+                            if (index >= 0)
+                            {
+                                weaponRange[index].MixedType(weapon.target);
+                            }
+                            else 
+                            {
+                                weaponRange.Add(new CoveredRange(weapon.target, addGrid));
+                            }
+                        }
+                }
+            }
+        }
+
+
+        return weaponRange;
+    }
+
+
 
 }
