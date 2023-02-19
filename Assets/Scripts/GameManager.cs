@@ -22,6 +22,7 @@ public class GameManager : MonoBehaviour
     // 之后要被重构掉的东西
     private bool statusChain = false;  // 状态链
     List<MsgDlgButtonInfo> msgDlgButtonInfos = new List<MsgDlgButtonInfo>();  
+    private Vector2Int lastPosition;  // 上一个状态时候的character位置
 
 
     private void Awake()
@@ -37,7 +38,6 @@ public class GameManager : MonoBehaviour
         msgDlgButtonInfos.Add(new MsgDlgButtonInfo("attack", ()=>{Debug.Log("attack");}));
         msgDlgButtonInfos.Add(new MsgDlgButtonInfo("exchange", ()=>{Debug.Log("exchange");}));
         msgDlgButtonInfos.Add(new MsgDlgButtonInfo("skip", ()=>{Debug.Log("skip");}));
-        // 02122023 在gamemanager找个地方 调用一下uimanager 传入这些按钮
     }
 
     public int waitTick = 0;
@@ -50,7 +50,7 @@ public class GameManager : MonoBehaviour
                 {
                     if (currentPlayerIndex != 0)
                     {
-                        GameState.gameControlState = GameControlState.EndTurn;
+                        ChangeGameState(GameControlState.EndTurn);
                         return;
                     }
                     uiManager.ClearAllRange();
@@ -66,7 +66,7 @@ public class GameManager : MonoBehaviour
 
                     if (currentPlayerIndex == 0)
                     {
-                        GameState.gameControlState = GameControlState.SelectCharacter;
+                        ChangeGameState(GameControlState.SelectCharacter);
                     }
 
                 }
@@ -91,7 +91,8 @@ public class GameManager : MonoBehaviour
                                 movementManager.GetMoveRange(selectedCharacter.gameObject.GetComponent<CharacterMovement>(), GetOccupiedGrids(currentCharacter), GetAllyGrids(currentCharacter));
                                 uiManager.ShowMoveRange(movementManager.LogicMoveRange);
                                 uiManager.ShowAttackRange(selectedCharacter.gameObject.GetComponent<CharacterAttack>(), MovementManager.GetV2IntFromDijkstraRange(movementManager.LogicMoveRange), mapGenerator.mapSize);  //拿到攻击范围V2Int List
-                                GameState.gameControlState = GameControlState.ShowRange;
+                                ChangeGameState(GameControlState.ShowRange);
+
                                 waitTick = 10;
                             }
 
@@ -130,7 +131,7 @@ public class GameManager : MonoBehaviour
                             Debug.Log("selected enemy characters");
                             SelectedCharacterInfo currentEnemy = GetCharacterInSelectedGrid(currSelectGrid);
                             currEnemy = characters[currentCharacter.playerIndex][currentCharacter.characterIndex].gameObject;
-                            GameState.gameControlState = GameControlState.ShowAttackableArea;
+                            ChangeGameState(GameControlState.ShowAttackableArea);
                         }
                         else
                         {
@@ -150,15 +151,16 @@ public class GameManager : MonoBehaviour
 
                                 if (selectedCharacter.gameObject == null)
                                 {
-                                    GameState.gameControlState = GameControlState.SelectCharacter;
+                                    ChangeGameState(GameControlState.SelectCharacter);
                                     waitTick = 10;
                                     return;
                                 }
                                 AnimatorController animatorController = selectedCharacter.gameObject.GetComponent<AnimatorController>();
                                 if (animatorController != null)
                                 {
+                                    lastPosition = selectedCharacter.gPos.grid;  // 把这个位置更新了
                                     animatorController.StartMove(moveGrids);
-                                    GameState.gameControlState = GameControlState.CharacterMoving;
+                                    ChangeGameState(GameControlState.CharacterMoving);
                                     waitTick = 10;
                                 }
                             }
@@ -218,8 +220,9 @@ public class GameManager : MonoBehaviour
                                 AnimatorController animatorController = selectedCharacter.gameObject.GetComponent<AnimatorController>();
                                 if (animatorController != null)
                                 {
+                                    //lastPosition = currSelectGrid;  // 把这个位置更新了
                                     animatorController.StartMove(moveGrids);
-                                    GameState.gameControlState = GameControlState.CharacterMoving;
+                                    ChangeGameState(GameControlState.CharacterMoving);
                                     statusChain = true;  // 我之后不能再选敌人
                                     waitTick = 10;
                                 }
@@ -240,7 +243,7 @@ public class GameManager : MonoBehaviour
                 {
                     if (selectedCharacter.gameObject == null)
                     {
-                        GameState.gameControlState = GameControlState.SelectCharacter;
+                        ChangeGameState(GameControlState.SelectCharacter);
                         waitTick = 10;
                         uiManager.ClearAllRange();
                         return;
@@ -263,23 +266,25 @@ public class GameManager : MonoBehaviour
                             // {
                             //     GameState.gameControlState = GameControlState.CharacterMoveDone;  //一个角色移动完成
                             // }
-                            GameState.gameControlState = GameControlState.ShowCommandMenu;  // 进入菜单选指令阶段
+                            ChangeGameState(GameControlState.ShowCommandMenu);
                             waitTick = 10;
                         }
                         else  // 我之前已经选过敌人了
                         {
-                            GameState.gameControlState = GameControlState.ConfirmWeapon;  // 确认攻击用的武器
+                            ChangeGameState(GameControlState.ConfirmWeapon);
                         }
-
                     }
-
+                }
+                break;
+            case GameControlState.ShowCommandMenu:
+                {
 
                 }
                 break;
             case GameControlState.WeaponSelect:
                 {
                     //这里还没做武器选择 就直接跳转选择攻击对象状态
-                    GameState.gameControlState = GameControlState.SelectAttackObject;
+                    ChangeGameState(GameControlState.SelectAttackObject);
                     waitTick = 10;
                 }
                 break;
@@ -293,15 +298,15 @@ public class GameManager : MonoBehaviour
                         SelectedCharacterInfo attackObjectCharacter = GetCharacterInSelectedGrid(currSelectGrid);
                         if (attackObjectCharacter.characterIndex == Constants.nullCharacterIndex)  // 没选中任何角色
                         {
-                            GameState.gameControlState = GameControlState.CharacterMoveDone;
+                            ChangeGameState(GameControlState.CharacterMoveDone);
                         }
                         else if (attackObjectCharacter.characterIndex == 0)  // 选中了我方角色
                         {
-                            GameState.gameControlState = GameControlState.ConfirmWeapon;  // 确认使用的攻击武器
+                            ChangeGameState(GameControlState.ConfirmWeapon);  // 确认使用的攻击武器
                         }
                         else  // 选中了某个敌方角色
                         {
-                            GameState.gameControlState = GameControlState.ConfirmWeapon;  // 确认使用的攻击武器
+                            ChangeGameState(GameControlState.ConfirmWeapon);  // 确认使用的攻击武器
                         }
                     }                    
                 }
@@ -309,15 +314,15 @@ public class GameManager : MonoBehaviour
             case GameControlState.ConfirmWeapon:
                 {
                     // 还没做 先直接跳转攻击阶段了
-                    // 之后这里要根据选中的是友方还是敌方 缺人不同的武器
-                    Debug.Log("GameControlState.ConfirmWeapon");
-                    GameState.gameControlState = GameControlState.Attack;
+                    // 之后这里要根据选中的是友方还是敌方 确认不同的武器
+                    //Debug.Log("GameControlState.ConfirmWeapon");
+                    ChangeGameState(GameControlState.Attack); 
                 }
                 break;
             case GameControlState.Attack:
                 {
                     // 还没做 先直接跳转行动完成阶段了
-                    GameState.gameControlState = GameControlState.CharacterMoveDone;
+                    ChangeGameState(GameControlState.CharacterMoveDone);
                 }
                 break;
             case GameControlState.CharacterMoveDone:  // 每个角色移动完成后 检查是不是所有角色都移动完成
@@ -334,11 +339,11 @@ public class GameManager : MonoBehaviour
                     }
                     if (haveAllFinished)  // 所有我方单位都移动完了
                     {
-                        GameState.gameControlState = GameControlState.EndTurn;  //回合结束
+                        ChangeGameState(GameControlState.EndTurn);  //回合结束
                     }
                     else
                     {
-                        GameState.gameControlState = GameControlState.SelectCharacter;  //选人移动
+                        ChangeGameState(GameControlState.SelectCharacter);  //选人移动
                     }
                 }
                 break;
@@ -350,7 +355,8 @@ public class GameManager : MonoBehaviour
             case GameControlState.EndTurn:
                 {
                     currentPlayerIndex = (currentPlayerIndex + 1) % playerCount;
-                    GameState.gameControlState = GameControlState.NewTurn;
+
+                    ChangeGameState(GameControlState.NewTurn);
                 }
                 break;
 
@@ -363,46 +369,126 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
+    /// 切换游戏状态
+    /// <param name="state">要切换的那个状态</param>
+    /// </summary>
+    private void ChangeGameState(GameControlState state)
+    {
+        GameState.gameControlState = state;
+    }
+
+    /// <summary>
     /// 获取当前所有可执行的按钮信息列表
     /// </summary>
     private List<MsgDlgButtonInfo> GetMsgDlgButtonInfos()
     {
         List<MsgDlgButtonInfo> currentMsgDlgButtonInfos = new List<MsgDlgButtonInfo>();
         byte abilities = CheckAbilities(selectedCharacter);
-        bool canExchangeItem = CheckExchangeItemAbility();
-        bool canAccessBackup = CheckAccessBackupAbility();
+        bool canExchangeItem = CheckExchangeItemAbility();  // 这个还没写
+        bool canAccessBackup = CheckAccessBackupAbility();  // 这个也还没写
 
         if ((Constants.TargetType_Foe&abilities) == Constants.TargetType_Foe)
         {
-            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Attack", () => {DebugLogEvent("Attack");}));
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Attack", AttackCommand));
         }
         if ((Constants.TargetType_Ally&abilities) == Constants.TargetType_Ally)
         {
-            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Heal", () => {DebugLogEvent("Heal");}));
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Heal", HealCommand));
         }
         if (canExchangeItem)
         {
-            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("canExchangeItem", () => {DebugLogEvent("canExchangeItem");}));
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("canExchangeItem", ExchangeCommand));
         }
         if (canAccessBackup)
         {
-            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("AccessBackup", () => {DebugLogEvent("AccessBackup");}));
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("AccessBackup", BackupCommand));
         }
 
         // 以下是啥时候都要加的按钮
-        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Wait", () => {DebugLogEvent("Wait");}));
-        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Inventory", () => {DebugLogEvent("Inventory");}));
-        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Cancel", () => {DebugLogEvent("Cancel");}));  
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Wait", WaitCommand));
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Inventory", InventoryCommand));
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Cancel", CancelCommand));  
 
 
         return currentMsgDlgButtonInfos;
 
     }
 
-    private void DebugLogEvent(string eventData)  // 测试时候用的函数 打个log
+    /// <summary>
+    /// 攻击 debug阶段结束这个character的本轮行动
+    /// </summary>
+    private void AttackCommand()
     {
-        Debug.Log(eventData);
+        ChangeGameState(GameControlState.CharacterMoveDone);
+        uiManager.HideMsgDlg();
     }
+
+    /// <summary>
+    /// Heal debug阶段结束这个character的本轮行动
+    /// </summary>
+    private void HealCommand()
+    {
+        ChangeGameState(GameControlState.CharacterMoveDone);
+        uiManager.HideMsgDlg();
+    }
+
+    /// <summary>
+    /// 交换物品 debug阶段结束这个character的本轮行动
+    /// </summary>
+    private void ExchangeCommand()
+    {
+        ChangeGameState(GameControlState.CharacterMoveDone);
+        uiManager.HideMsgDlg();
+    }
+
+    /// <summary>
+    /// 运输队 debug阶段结束这个character的本轮行动
+    /// </summary>
+    private void BackupCommand()
+    {
+        ChangeGameState(GameControlState.CharacterMoveDone);
+        uiManager.HideMsgDlg();
+    }
+
+    /// <summary>
+    /// 运输队 debug阶段结束这个character的本轮行动
+    /// </summary>
+    private void InventoryCommand()
+    {
+        ChangeGameState(GameControlState.CharacterMoveDone);
+        uiManager.HideMsgDlg();
+    }
+
+    /// <summary>
+    /// 结束这个character的本轮行动
+    /// </summary>
+    private void WaitCommand()
+    {
+        ChangeGameState(GameControlState.CharacterMoveDone);
+        uiManager.HideMsgDlg();
+    }
+
+    /// <summary>
+    /// 返回上一个行动状态
+    /// </summary>
+    private void CancelCommand()
+    {
+        selectedCharacter.animator.NewTurn();  // 把animator状态重置一下
+        GridPosition gPos = selectedCharacter.gameObject.GetComponent<GridPosition>();
+        if (gPos != null)
+        {
+            gPos.grid = lastPosition;
+            gPos.SynchronizeGridPosition();
+        }
+        uiManager.HideMsgDlg();
+        ChangeGameState(GameControlState.SelectCharacter);
+    }
+
+    // private void DebugLogEvent(string eventData)  // 测试时候用的函数 打个log
+    // {
+    //     Debug.Log(eventData);
+    //     uiManager.HideMsgDlg();
+    // }
 
     /// <summary>
     /// 检查周围是否有可攻击或治疗的对象
@@ -492,7 +578,7 @@ public class GameManager : MonoBehaviour
         tempPlayers.Add(8);
         CreateAllCharacters(tempPlayers);
 
-        GameState.gameControlState = GameControlState.NewTurn;
+        ChangeGameState(GameControlState.NewTurn);
     }
 
     //判断选中的位置是什么东西

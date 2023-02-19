@@ -37,7 +37,7 @@ public class MoveByPath : MonoBehaviour
             );
             direction = currentDirection;
         }
-        Debug.Log("pathNodes length : " + pathNodes.Count);
+        //Debug.Log("pathNodes length : " + pathNodes.Count);
 
         isMoving = true;
 

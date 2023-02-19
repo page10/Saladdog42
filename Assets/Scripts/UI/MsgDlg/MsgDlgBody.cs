@@ -8,13 +8,15 @@ using UnityEngine.EventSystems;
 /// <summary>
 /// 一个按钮
 /// </summary>
-public class MsgDlgBody : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public class MsgDlgBody : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
     private MsgDlgButtonInfo m_button;
     public MsgDlgButtonInfo M_button{get { return m_button;}}
     public static float bodyHeight = 82.5f;  // 框框的高度 策划设计的
     private int bodyIndex;  // 这是第几个body
+
     private MsgdlgBodyIndex OnSelected;
+    private CommandEvent buttonCommand;
 
     /// <summary>
     /// 设置命令按钮的命令文字
@@ -26,6 +28,7 @@ public class MsgDlgBody : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
         commandText.GetComponent<Text>().text = button.commandText;
         bodyIndex = index;
         OnSelected = onSelected;
+        buttonCommand = button.commandEvent;
         GetComponent<RectTransform>().localPosition = new Vector2(0, -(index + 1) * bodyHeight);
     }
 
@@ -44,6 +47,16 @@ public class MsgDlgBody : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
     {
 //        Debug.Log("Cursor Exiting " + name + " GameObject");
     }
+
+    public void OnPointerClick(PointerEventData pointerEventData)
+    {
+        //Use this to tell when the user left-clicks on the Button
+        if ((pointerEventData.button == PointerEventData.InputButton.Left) && buttonCommand != null)
+        {
+            buttonCommand();
+        }
+    }
+
 
 
 
