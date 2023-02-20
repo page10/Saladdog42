@@ -49,7 +49,7 @@ public class MsgDlg : MonoBehaviour
     {
         GameObject body = Instantiate<GameObject>(Resources.Load<GameObject>(bodyPrefabPath));
         MsgDlgBody msgDlgBody = body.GetComponent<MsgDlgBody>();
-        if (msgDlgBody != null)
+        if (!msgDlgBody)
         {
             bodies.Add(msgDlgBody);
             msgDlgBody.SetMbutton(button,index,BodyOnSelected);

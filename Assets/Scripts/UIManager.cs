@@ -97,19 +97,19 @@ public class UIManager : MonoBehaviour
             case SignType.Move:  // 移动范围
                 {
                     grid = Instantiate<GameObject>(Resources.Load<GameObject>("Prefabs/MoveRange"));
-                    if (grid == null) return;
+                    if (!grid) return;
                 }
                 break;
             case SignType.Attack:  // 攻击范围
                 {
                     grid = Instantiate<GameObject>(Resources.Load<GameObject>("Prefabs/AttackRange"));
-                    if (grid == null) return;
+                    if (!grid) return;
                 }
                 break;
             case SignType.AttackableMove:  // 可移动并攻击的范围
                 {
                     grid = Instantiate<GameObject>(Resources.Load<GameObject>("Prefabs/AttackableMoveRange"));
-                    if (grid == null) return;
+                    if (!grid) return;
                 }
                 break;
         }
@@ -117,7 +117,7 @@ public class UIManager : MonoBehaviour
         grid.transform.SetParent(transform);
 
         GridPosition gPos = grid.GetComponent<GridPosition>();
-        if (gPos != null)
+        if (!gPos)
         {
             gPos.grid = gridPos;
             gPos.SynchronizeGridPosition();
@@ -223,7 +223,7 @@ public class UIManager : MonoBehaviour
 
     public void ShowMsgDlg(List<MsgDlgButtonInfo> commandButtons)
     {
-        if (msgDlg == null)
+        if (!msgDlg)
         {
             GameObject msgDlgObject = Instantiate<GameObject>(Resources.Load<GameObject>(msgdlgPath));
             msgDlgObject.transform.SetParent(msgCanvasTransform);  // transform set parent 了之后 gameobject也就setParent了 
