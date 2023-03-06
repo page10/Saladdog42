@@ -26,13 +26,28 @@ public struct WeaponObj
     /// </summary>
     public byte target;
 
-    public WeaponObj(int atkPower, int minRange, int maxRange, byte target)
+    /// <summary>
+    /// 武器的攻击先后手类型
+    /// </summary>
+    public WeaponType weaponType;
+
+    public WeaponObj(int atkPower, int minRange, int maxRange, byte target, WeaponType weaponType)
     {
         this.atkPower = atkPower;
         this.minRange = minRange;
         this.maxRange = maxRange;
         this.target = target;
-
+        this.weaponType = weaponType;
     }
 
+}
+
+/// <summary>
+/// 武器攻击先后手类型enum
+/// </summary>
+public enum WeaponType
+{
+    normalAttack,
+    doubleAttack,
+    laterAttack,
 }

@@ -17,7 +17,13 @@ public class GameManager : MonoBehaviour
     private MapGenerator mapGenerator;
     private UIManager uiManager;
     private Vector2 currMousePosition;  // 当前鼠标位置
-
+    
+    //战斗相关
+    private SelectedCharacterInfo currSelectedEnemy;  // 当前选中的敌方角色
+    private SelectedCharacterInfo attacker;  // 当前选中的我方角色
+    private SelectedCharacterInfo defender;  // 当前选中的敌方角色
+    private List<SelectedCharacterInfo> attackTeam;  // 可发动连携攻击的队伍
+    
 
     // 之后要被重构掉的东西
     private bool statusChain = false;  // 状态链
@@ -712,9 +718,9 @@ public class GameManager : MonoBehaviour
         CharacterAttack attack = character.GetComponent<CharacterAttack>();
         if (attack != null)
         {
-            attack.AddWeapon(new WeaponObj(1, 1, 2, Constants.TargetType_Foe));
+            attack.AddWeapon(new WeaponObj(1, 1, 2, Constants.TargetType_Foe, WeaponType.doubleAttack));
             attack.weaponCurIndex = 0;
-            attack.AddWeapon(new WeaponObj(1, 1, 3, Constants.TargetType_Ally));
+            attack.AddWeapon(new WeaponObj(1, 1, 3, Constants.TargetType_Ally, WeaponType.normalAttack));
         }
         characters[playerIndex].Add(new CharacterObject(gPos, slaveTo, animator, attack));
     }
