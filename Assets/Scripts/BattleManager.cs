@@ -29,12 +29,17 @@ public class BattleManager : MonoBehaviour
     {
         CalInitStatus();
         SingleBattleInfo = new List<BattleResInfo>();
-        // 判定攻击方拿的武器是不是后手武器
-        if (BattleInputInfo.attackerWeapon.weaponType != WeaponType.laterAttack)
-        {
-            
-        }
         
+        // 判定攻击方拿的武器是不是后手武器
+        if (BattleInputInfo.attackerWeapon.weaponType != WeaponType.laterAttack)  // 不是后手武器 正常打
+        {
+            CalSingleBattle(true);
+        }
+        else  // 是后手武器 直接反击
+        {
+            CalSingleBattle(false);
+        }
+
     }
     
     /// <summary>
@@ -44,7 +49,8 @@ public class BattleManager : MonoBehaviour
     private void CalSingleBattle(bool isAttacker)
     {
         BattleResInfo battleResInfo = new BattleResInfo();
-        if (isAttacker)
+        battleResInfo.isAttacker = isAttacker;
+        if (isAttacker)  //这次攻击来自攻击方
         {
             int hit = attackerModifiedStatus.hit - defenderModifiedStatus.dodge;
             int crit = attackerModifiedStatus.crit;
@@ -70,12 +76,45 @@ public class BattleManager : MonoBehaviour
                     defenderModifiedStatus.hp -= damage;
                 }
             }
-            else
+            else  // 没命中
             {
                 damage = 0;
                 battleResInfo.isHit = false;
             }
         }
+        else  // 这次攻击来自反击方
+        {
+            int hit = defenderModifiedStatus.hit - attackerModifiedStatus.dodge;
+            int crit = defenderModifiedStatus.crit;
+            int damage = defenderModifiedStatus.attack - attackerModifiedStatus.defense;
+            
+            // 判定是否命中
+            if (hit >= Random.Range(0, 100))
+            {
+                // 判定是否暴击
+                if (crit >= Random.Range(0, 100))
+                {
+                    battleResInfo.isCrit = true;
+                    damage *= 3;
+                }
+                // 判定是否杀死
+                if (damage >= attackerModifiedStatus.hp)
+                {
+                    battleResInfo.isKill = true;
+                    attackerModifiedStatus.hp = 0;
+                }
+                else
+                {
+                    attackerModifiedStatus.hp -= damage;
+                }
+            }
+            else  // 没命中
+            {
+                damage = 0;
+                battleResInfo.isHit = false;
+            }
+        }
+        SingleBattleInfo.Add(battleResInfo);
 
     }
     
