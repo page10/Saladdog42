@@ -39,15 +39,56 @@ public struct WeaponObj
         this.target = target;
         this.weaponType = weaponType;
     }
-
+    
+    /// <summary>
+    /// 根据武器类型给出战斗行动点消耗
+    /// </summary>
+    /// <returns></returns>
+    public AttackActionCosts GetActionCostByType()
+    {
+        switch (weaponType)
+        {
+            case WeaponType.NormalAttack:
+                return new AttackActionCosts(0, 4);
+            case WeaponType.DoubleAttack:
+                return new AttackActionCosts(0, 4);
+            case WeaponType.LaterAttack:
+                return new AttackActionCosts(2, 4);
+            default:
+                return new AttackActionCosts(0, 4);
+        }
+    }
 }
+
 
 /// <summary>
 /// 武器攻击先后手类型enum
 /// </summary>
 public enum WeaponType
 {
-    normalAttack,
-    doubleAttack,
-    laterAttack,
+    NormalAttack,
+    DoubleAttack,
+    LaterAttack,
+}
+
+/// <summary>
+/// 武器的攻击行动力消耗
+/// 包括初始化消耗和攻击消耗
+/// </summary>
+public struct AttackActionCosts
+{
+    /// <summary>
+    /// 武器的初始化消耗攻击行动力点数
+    /// </summary>
+    public int initCost;
+    /// <summary>
+    /// 武器的攻击消耗攻击行动力点数
+    /// </summary>
+    public int attackCost;
+    
+    public AttackActionCosts(int initCost, int attackCost)
+    {
+        this.initCost = initCost;
+        this.attackCost = attackCost;
+    }
 }

@@ -718,9 +718,9 @@ public class GameManager : MonoBehaviour
         CharacterAttack attack = character.GetComponent<CharacterAttack>();
         if (attack != null)
         {
-            attack.AddWeapon(new WeaponObj(1, 1, 2, Constants.TargetType_Foe, WeaponType.doubleAttack));
+            attack.AddWeapon(new WeaponObj(1, 1, 2, Constants.TargetType_Foe, WeaponType.DoubleAttack));
             attack.weaponCurIndex = 0;
-            attack.AddWeapon(new WeaponObj(1, 1, 3, Constants.TargetType_Ally, WeaponType.normalAttack));
+            attack.AddWeapon(new WeaponObj(1, 1, 3, Constants.TargetType_Ally, WeaponType.NormalAttack));
         }
         characters[playerIndex].Add(new CharacterObject(gPos, slaveTo, animator, attack));
     }

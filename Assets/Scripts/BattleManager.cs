@@ -29,18 +29,25 @@ public class BattleManager : MonoBehaviour
     {
         CalInitStatus();
         SingleBattleInfo = new List<BattleResInfo>();
+        int attackerActPoints, defenderActPoints;  // 攻击方和受击方的行动力 临时变量
+        // 初始化双方行动力
+        attackerActPoints = 7;
+        defenderActPoints = 6;
+        // 计算攻击方和受击方的武器消耗
+        AttackActionCosts attackActionCosts = BattleInputInfo.attackerWeapon.GetActionCostByType();
+        AttackActionCosts defendActionCosts = BattleInputInfo.defenderWeapon.GetActionCostByType();
+        // 计算武器初始化之后 攻击方和受击方的行动力
         
-        // 判定攻击方拿的武器是不是后手武器
-        if (BattleInputInfo.attackerWeapon.weaponType != WeaponType.laterAttack)  // 不是后手武器 正常打
-        {
-            CalSingleBattle(true);
-        }
-        else  // 是后手武器 直接反击
-        {
-            CalSingleBattle(false);
-        }
-
     }
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     /// <summary>
     /// 计算单次战斗
