@@ -117,7 +117,7 @@ public class UIManager : MonoBehaviour
         grid.transform.SetParent(transform);
 
         GridPosition gPos = grid.GetComponent<GridPosition>();
-        if (!gPos)
+        if (gPos)
         {
             gPos.grid = gridPos;
             gPos.SynchronizeGridPosition();

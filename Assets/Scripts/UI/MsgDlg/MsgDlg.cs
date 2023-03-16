@@ -49,7 +49,7 @@ public class MsgDlg : MonoBehaviour
     {
         GameObject body = Instantiate<GameObject>(Resources.Load<GameObject>(bodyPrefabPath));
         MsgDlgBody msgDlgBody = body.GetComponent<MsgDlgBody>();
-        if (!msgDlgBody)
+        if (msgDlgBody)
         {
             bodies.Add(msgDlgBody);
             msgDlgBody.SetMbutton(button,index,BodyOnSelected);
@@ -65,7 +65,5 @@ public class MsgDlg : MonoBehaviour
     private void BodyOnSelected (int idx) {
         selectSign.gameObject.GetComponent<RectTransform>().localPosition = new Vector2(0, -(idx + 1) * MsgDlgBody.bodyHeight);
     }
-
-  
     
 }

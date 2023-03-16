@@ -88,7 +88,7 @@ public class GameManager : MonoBehaviour
                         if (currentCharacter.playerIndex == currentPlayerIndex)  // 选中了我方角色
                         {
                             selectedCharacter = characters[currentCharacter.playerIndex][currentCharacter.characterIndex];
-                            if (characters[currentPlayerIndex][currentCharacter.characterIndex].animator.IsMoveFinished(false) == true)  // 移动完了
+                            if (selectedCharacter.animator.IsMoveFinished(false) == true)  // 移动完了
                             {
                                 //Debug.Log("test");
                             }
