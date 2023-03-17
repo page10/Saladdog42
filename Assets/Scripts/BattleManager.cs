@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class BattleManager : MonoBehaviour
 {
-    public BattleInputInfo BattleInputInfo { get; set; }
+    public BattleInputInfo battleInputInfo { get; set; }
     public List<BattleResInfo> SingleBattleInfo { get; set; }
     
     public CharacterStatus attackerModifiedStatus;  // 攻击方受武器和地形影响后的status
@@ -16,11 +16,11 @@ public class BattleManager : MonoBehaviour
     /// </summary>
     private void CalInitStatus()
     {
-        attackerModifiedStatus = BattleInputInfo.attackerStatus + BattleInputInfo.attackerTerrainStatus;
-        defenderModifiedStatus = BattleInputInfo.defenderStatus + BattleInputInfo.defenderTerrainStatus;
+        attackerModifiedStatus = battleInputInfo.attackerStatus + battleInputInfo.attackerTerrainStatus;
+        defenderModifiedStatus = battleInputInfo.defenderStatus + battleInputInfo.defenderTerrainStatus;
         
-        attackerModifiedStatus.attack += BattleInputInfo.attackerWeapon.atkPower;
-        defenderModifiedStatus.attack += BattleInputInfo.defenderWeapon.atkPower;
+        attackerModifiedStatus.attack += battleInputInfo.attackerWeapon.atkPower;
+        defenderModifiedStatus.attack += battleInputInfo.defenderWeapon.atkPower;
     }
     /// <summary>
     /// 开始战斗
@@ -34,18 +34,63 @@ public class BattleManager : MonoBehaviour
         attackerActPoints = 7;
         defenderActPoints = 6;
         // 计算攻击方和受击方的武器消耗
-        AttackActionCosts attackActionCosts = BattleInputInfo.attackerWeapon.GetActionCostByType();
-        AttackActionCosts defendActionCosts = BattleInputInfo.defenderWeapon.GetActionCostByType();
+        AttackActionCosts attackActionCosts = battleInputInfo.attackerWeapon.GetActionCostByType();
+        AttackActionCosts defendActionCosts = battleInputInfo.defenderWeapon.GetActionCostByType();
         // 计算武器初始化之后 攻击方和受击方的行动力
+        attackerActPoints -= attackActionCosts.initCost;
+        defenderActPoints -= defendActionCosts.initCost;
+        // 第一次打架
+        while (true)  // 这里没有因为死亡而停止计算 但是死亡的话 会有一个死亡的结果输出 在另外的逻辑里根据这个运算实际结果
+        {
+            if (attackerActPoints >= defenderActPoints)  
+            {
+                if (attackerActPoints > 0)
+                {
+                    CalSingleBattle(true);
+                    attackerActPoints -= attackActionCosts.attackCost;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            else
+            {
+                if (defenderActPoints > 0 && CanFightBack())
+                {
+                    CalSingleBattle(false);
+                    defenderActPoints -= defendActionCosts.attackCost;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        // 判定攻速差 第二次打架
         
     }
-    
-    
-    
-    
-    
-    
-    
+
+    /// <summary>
+    /// 防守方是不是能反击
+    /// </summary>
+    /// <returns></returns>
+    private bool CanFightBack()
+    {
+        bool inRange = battleInputInfo.defenderWeapon.maxRange >= battleInputInfo.distance &&
+                       battleInputInfo.defenderWeapon.minRange <= battleInputInfo.distance;  
+        // 是否在攻击范围内 debug
+        // 这里有个问题 判定攻击范围 需要知道攻击方和受击方的位置或者距离
+        // 在这不能调characters拿gridPos 需要外部再传一个「距离」参数
+        // 把这个参数在这里和受击方的攻击范围比较
+        
+        bool sameSide = battleInputInfo.isSameSide;  
+        // 是否同一方 debug
+        // 这里也有个问题 判定是否同一方 需要知道攻击方和受击方的阵营
+        // 阵营这里拿也不太好 在gameManager调的时候 比较一下attacker和defender的阵营就行了
+        
+        return inRange && !sameSide;
+    }
     
     
     

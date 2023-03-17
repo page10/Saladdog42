@@ -31,9 +31,18 @@ namespace Structs
         /// 受击方所在地形
         /// </summary>
         public CharacterStatus defenderTerrainStatus;
+        /// <summary>
+        /// 双方距离
+        /// </summary>
+        public int distance;
+        /// <summary>
+        /// 是否是同一方
+        /// </summary>
+        public bool isSameSide;
         
         public BattleInputInfo(CharacterStatus attackerStatus, CharacterStatus defenderStatus, WeaponObj attackerWeapon,
-            WeaponObj defenderWeapon, CharacterStatus attackerTerrainStatus, CharacterStatus defenderTerrainStatus)
+            WeaponObj defenderWeapon, CharacterStatus attackerTerrainStatus, CharacterStatus defenderTerrainStatus, 
+            int distance, bool isSameSide)
         {
             this.attackerStatus = attackerStatus;
             this.defenderStatus = defenderStatus;
@@ -41,6 +50,8 @@ namespace Structs
             this.defenderWeapon = defenderWeapon;
             this.attackerTerrainStatus = attackerTerrainStatus;
             this.defenderTerrainStatus = defenderTerrainStatus;
+            this.distance = distance;
+            this.isSameSide = isSameSide;
         }
     }
 

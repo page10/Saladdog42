@@ -75,7 +75,6 @@ public class TileOfTerrain : MonoBehaviour
         }
         return Int32.MaxValue;
     }
-
 }
 
 /// <summary>
