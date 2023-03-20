@@ -67,13 +67,14 @@ namespace Structs
         public bool isKill;
         public CharacterStatus attackerBuffChange;
         public CharacterStatus defenderBuffChange;
-        public Vector2Int attackerPos;
-        public Vector2Int defenderPos;
+        public Vector2Int attackerPosChange;
+        public Vector2Int defenderPosChange;
         public VisualResult visualResult;
 
-        public BattleResInfo(bool isAttacker, int damage, bool isHit, bool isCrit, bool isKill,
-            CharacterStatus attackerBuffChange, CharacterStatus defenderBuffChange, Vector2Int attackerPos,
-            Vector2Int defenderPos, VisualResult visualResult)
+        public BattleResInfo(bool isAttacker, int damage, bool isHit, bool isCrit, 
+            bool isKill, CharacterStatus attackerBuffChange,
+            CharacterStatus defenderBuffChange , Vector2Int attackerPosChange, Vector2Int defenderPosChange, 
+            VisualResult visualResult )
         {
             this.isAttacker = isAttacker;
             this.damage = damage;
@@ -82,8 +83,8 @@ namespace Structs
             this.isKill = isKill;
             this.attackerBuffChange = attackerBuffChange;
             this.defenderBuffChange = defenderBuffChange;
-            this.attackerPos = attackerPos;
-            this.defenderPos = defenderPos;
+            this.attackerPosChange = attackerPosChange;
+            this.defenderPosChange = defenderPosChange;
             this.visualResult = visualResult;
         }
     }
@@ -99,6 +100,38 @@ namespace Structs
         public string defenderAction;
         public string attackerEffectPath;
         public string defenderEffectPath;
+        public VisualResult(string attackerFaceDirection = "", string defenderFaceDirection= "", string attackerAction= "", 
+            string defenderAction= "", string attackerEffectPath= "", string defenderEffectPath= "")
+        {
+            this.attackerFaceDirection = attackerFaceDirection;
+            this.defenderFaceDirection = defenderFaceDirection;
+            this.attackerAction = attackerAction;
+            this.defenderAction = defenderAction;
+            this.attackerEffectPath = attackerEffectPath;
+            this.defenderEffectPath = defenderEffectPath;
+        }
+  
+    }
+
+    /// <summary>
+    /// 战斗中一方的信息
+    /// </summary>
+    public class BattleGuyInfo
+    {
+        public bool isAttacker;
+        public int actPoints;
+        public AttackActionCosts actionCosts;
+        public CharacterStatus characterStatus;
+        public WeaponObj weaponObj;
+        
+        public BattleGuyInfo(bool isAttacker, int actPoints, AttackActionCosts actionCosts, CharacterStatus characterStatus, WeaponObj weaponObj)
+        {
+            this.isAttacker = isAttacker;
+            this.actPoints = actPoints;
+            this.actionCosts = actionCosts;
+            this.characterStatus = characterStatus;
+            this.weaponObj = weaponObj;
+        }
 
     }
 }

@@ -19,7 +19,8 @@ public struct CharacterStatus
     public int crit;
     public int speed;
 
-    public CharacterStatus(int attack, int mAttack, int defense, int mDefense, int hp, int hit, int dodge, int crit, int speed)
+    public CharacterStatus(int attack = 0, int mAttack = 0, int defense = 0, int mDefense = 0, int hp = 0, 
+        int hit = 0, int dodge = 0, int crit = 0, int speed = 0)
     {
         this.attack = attack;
         this.mAttack = mAttack;

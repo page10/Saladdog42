@@ -7,68 +7,98 @@ public class BattleManager : MonoBehaviour
 {
     public BattleInputInfo battleInputInfo { get; set; }
     public List<BattleResInfo> SingleBattleInfo { get; set; }
+    private List<BattleGuyInfo> battleGuyInfos = new List<BattleGuyInfo>();
     
-    public CharacterStatus attackerModifiedStatus;  // 攻击方受武器和地形影响后的status
-    public CharacterStatus defenderModifiedStatus;  // 受击方受武器和地形影响后的status
+    private const int comboThreshold = 5;
+    private const int attackerActPointsBase = 7;
+    private const int defenderActPointsBase = 6;
 
     /// <summary>
     /// 计算双方受武器和地形影响后的status
     /// </summary>
     private void CalInitStatus()
     {
-        attackerModifiedStatus = battleInputInfo.attackerStatus + battleInputInfo.attackerTerrainStatus;
-        defenderModifiedStatus = battleInputInfo.defenderStatus + battleInputInfo.defenderTerrainStatus;
-        
+        battleGuyInfos.Clear();
+
+        // 双方受武器和地形影响后的status
+        CharacterStatus attackerModifiedStatus = battleInputInfo.attackerStatus + battleInputInfo.attackerTerrainStatus;
+        CharacterStatus defenderModifiedStatus = battleInputInfo.defenderStatus + battleInputInfo.defenderTerrainStatus;
+
         attackerModifiedStatus.attack += battleInputInfo.attackerWeapon.atkPower;
         defenderModifiedStatus.attack += battleInputInfo.defenderWeapon.atkPower;
+
+        battleGuyInfos.Add(
+            new BattleGuyInfo(
+                true,
+                attackerActPointsBase - battleInputInfo.attackerWeapon.GetActionCostByType().initCost,
+                battleInputInfo.attackerWeapon.GetActionCostByType(),
+                attackerModifiedStatus,
+                battleInputInfo.attackerWeapon
+            )
+        );
+        battleGuyInfos.Add(
+            new BattleGuyInfo(
+                false,
+                CanFightBack() ? (defenderActPointsBase - battleInputInfo.defenderWeapon.GetActionCostByType().initCost) : 0,
+                battleInputInfo.defenderWeapon.GetActionCostByType(),
+                defenderModifiedStatus,
+                battleInputInfo.defenderWeapon
+            )
+        );
     }
+
     /// <summary>
-    /// 开始战斗
+    /// 开始战斗 获得完整的战斗信息
     /// </summary>
     public void StartBattle()
     {
         CalInitStatus();
         SingleBattleInfo = new List<BattleResInfo>();
-        int attackerActPoints, defenderActPoints;  // 攻击方和受击方的行动力 临时变量
-        // 初始化双方行动力
-        attackerActPoints = 7;
-        defenderActPoints = 6;
-        // 计算攻击方和受击方的武器消耗
-        AttackActionCosts attackActionCosts = battleInputInfo.attackerWeapon.GetActionCostByType();
-        AttackActionCosts defendActionCosts = battleInputInfo.defenderWeapon.GetActionCostByType();
-        // 计算武器初始化之后 攻击方和受击方的行动力
-        attackerActPoints -= attackActionCosts.initCost;
-        defenderActPoints -= defendActionCosts.initCost;
-        // 第一次打架
-        while (true)  // 这里没有因为死亡而停止计算 但是死亡的话 会有一个死亡的结果输出 在另外的逻辑里根据这个运算实际结果
+
+
+        // // 第一次打架
+        while (true) // 这里没有因为死亡而停止计算 但是死亡的话 会有一个死亡的结果输出 在另外的逻辑里根据这个运算实际结果
         {
-            if (attackerActPoints >= defenderActPoints)  
+            battleGuyInfos.Sort((BattleGuyInfo a, BattleGuyInfo b) =>  a.actPoints > b.actPoints ? -1 : 1 );
+            if (battleGuyInfos[0].actPoints > 0)
             {
-                if (attackerActPoints > 0)
-                {
-                    CalSingleBattle(true);
-                    attackerActPoints -= attackActionCosts.attackCost;
-                }
-                else
-                {
-                    break;
-                }
+                FightOnce(battleGuyInfos[0], battleGuyInfos[1]);
+                battleGuyInfos[0].actPoints -= battleGuyInfos[0].actionCosts.attackCost;
             }
             else
             {
-                if (defenderActPoints > 0 && CanFightBack())
-                {
-                    CalSingleBattle(false);
-                    defenderActPoints -= defendActionCosts.attackCost;
-                }
-                else
-                {
-                    break;
-                }
+                break;
             }
         }
+
         // 判定攻速差 第二次打架
-        
+        int speedDiff = battleGuyInfos[0].characterStatus.speed - battleGuyInfos[1].characterStatus.speed;
+        if (Mathf.Abs(speedDiff) >= comboThreshold) // 有一方速度大于5
+        {
+            int attackerIndex = speedDiff > 0 ? 0 : 1;
+            // 第2次打架 不存在反击了 也不用再初始化双方行动力 直接让能二动的人打
+            FightOnce(
+                battleGuyInfos[attackerIndex],
+                battleGuyInfos[1 - attackerIndex] // 讨巧获得了另一方下标
+            );
+        }
+    }
+
+    private void FightOnce(BattleGuyInfo attackGuyInfo, BattleGuyInfo defendGuyInfo)
+
+    {
+        int times = attackGuyInfo.weaponObj.weaponType == WeaponType.DoubleAttack ? 2 : 1;
+        for (int i = 0; i < times; i++)
+        {
+            SingleBattleInfo.Add(CalDamage(attackGuyInfo, defendGuyInfo));
+        }
+    }
+
+    /// <summary>
+    /// 根据生成的battleResInfo 把伤害和状态修改施加到角色身上
+    /// </summary>
+    public void GenerateHit()
+    {
     }
 
     /// <summary>
@@ -77,97 +107,89 @@ public class BattleManager : MonoBehaviour
     /// <returns></returns>
     private bool CanFightBack()
     {
-        bool inRange = battleInputInfo.defenderWeapon.maxRange >= battleInputInfo.distance &&
-                       battleInputInfo.defenderWeapon.minRange <= battleInputInfo.distance;  
         // 是否在攻击范围内 debug
         // 这里有个问题 判定攻击范围 需要知道攻击方和受击方的位置或者距离
         // 在这不能调characters拿gridPos 需要外部再传一个「距离」参数
         // 把这个参数在这里和受击方的攻击范围比较
-        
-        bool sameSide = battleInputInfo.isSameSide;  
+        bool inRange = battleInputInfo.defenderWeapon.maxRange >= battleInputInfo.distance &&
+                       battleInputInfo.defenderWeapon.minRange <= battleInputInfo.distance;
         // 是否同一方 debug
         // 这里也有个问题 判定是否同一方 需要知道攻击方和受击方的阵营
         // 阵营这里拿也不太好 在gameManager调的时候 比较一下attacker和defender的阵营就行了
-        
+        bool sameSide = battleInputInfo.isSameSide;
         return inRange && !sameSide;
     }
-    
-    
-    
-    /// <summary>
-    /// 计算单次战斗
-    /// </summary>
-    /// <param name="isAttacker">是攻击方的攻击</param>
-    private void CalSingleBattle(bool isAttacker)
-    {
-        BattleResInfo battleResInfo = new BattleResInfo();
-        battleResInfo.isAttacker = isAttacker;
-        if (isAttacker)  //这次攻击来自攻击方
-        {
-            int hit = attackerModifiedStatus.hit - defenderModifiedStatus.dodge;
-            int crit = attackerModifiedStatus.crit;
-            int damage = attackerModifiedStatus.attack - defenderModifiedStatus.defense;
-            
-            // 判定是否命中
-            if (hit >= Random.Range(0, 100))
-            {
-                // 判定是否暴击
-                if (crit >= Random.Range(0, 100))
-                {
-                    battleResInfo.isCrit = true;
-                    damage *= 3;
-                }
-                // 判定是否杀死
-                if (damage >= defenderModifiedStatus.hp)
-                {
-                    battleResInfo.isKill = true;
-                    defenderModifiedStatus.hp = 0;
-                }
-                else
-                {
-                    defenderModifiedStatus.hp -= damage;
-                }
-            }
-            else  // 没命中
-            {
-                damage = 0;
-                battleResInfo.isHit = false;
-            }
-        }
-        else  // 这次攻击来自反击方
-        {
-            int hit = defenderModifiedStatus.hit - attackerModifiedStatus.dodge;
-            int crit = defenderModifiedStatus.crit;
-            int damage = defenderModifiedStatus.attack - attackerModifiedStatus.defense;
-            
-            // 判定是否命中
-            if (hit >= Random.Range(0, 100))
-            {
-                // 判定是否暴击
-                if (crit >= Random.Range(0, 100))
-                {
-                    battleResInfo.isCrit = true;
-                    damage *= 3;
-                }
-                // 判定是否杀死
-                if (damage >= attackerModifiedStatus.hp)
-                {
-                    battleResInfo.isKill = true;
-                    attackerModifiedStatus.hp = 0;
-                }
-                else
-                {
-                    attackerModifiedStatus.hp -= damage;
-                }
-            }
-            else  // 没命中
-            {
-                damage = 0;
-                battleResInfo.isHit = false;
-            }
-        }
-        SingleBattleInfo.Add(battleResInfo);
 
+
+    // /// <summary>
+    // /// 计算单次战斗
+    // /// </summary>
+    // /// <param name="isAttacker">是攻击方的攻击</param>
+    // private BattleResInfo CalSingleBattle(bool isAttacker)
+    // {
+    //     if (isAttacker) //这次攻击来自攻击方
+    //     {
+    //         return CalDamage(attackerModifiedStatus, defenderModifiedStatus, true);
+    //     }
+    //     else // 这次攻击来自反击方
+    //     {
+    //         return CalDamage(defenderModifiedStatus, attackerModifiedStatus, false);
+    //     }
+    // }
+
+    /// <summary>
+    /// 一次伤害计算流程
+    /// </summary>
+    /// <param name="attacker">本次出手攻击人</param>
+    /// <param name="defender">本次防御人</param>
+    private BattleResInfo CalDamage(BattleGuyInfo attacker, BattleGuyInfo defender)
+    {
+        CharacterStatus thisAttackStatus = attacker.characterStatus;
+        CharacterStatus thisDefendStatus = defender.characterStatus;
+        bool isAttacker = attacker.isAttacker;
+
+        int hit = thisAttackStatus.hit - thisDefendStatus.dodge;
+        int crit = thisAttackStatus.crit;
+        int damage = thisAttackStatus.attack - thisDefendStatus.defense;
+        bool isCrit = false;
+        bool isKill = false;
+        bool isHit = true;
+
+        // 判定是否命中
+        if (hit >= Random.Range(0, 100))
+        {
+            // 判定是否暴击
+            if (crit >= Random.Range(0, 100))
+            {
+                isCrit = true;
+                damage *= 3;
+            }
+
+            // 判定是否杀死
+            if (damage >= thisDefendStatus.hp)
+            {
+                isKill = true;
+                thisDefendStatus.hp = 0;
+            }
+            else
+            {
+                thisDefendStatus.hp -= damage;
+            }
+        }
+        else // 没命中
+        {
+            damage = 0;
+            isHit = false;
+        }
+
+        CharacterStatus attackerBuffChange = new CharacterStatus(); // 先占个坑 攻击方buff变化
+        CharacterStatus defenderBuffChange = new CharacterStatus(); // 先占个坑 受击方buff变化
+        Vector2Int attackerPosChange = new Vector2Int(0, 0); // 先占个坑 攻击方位置变化
+        Vector2Int defenderPosChange = new Vector2Int(0, 0); // 先占个坑 受击方位置变化
+        VisualResult visualResult = new VisualResult();
+        BattleResInfo battleResInfo = new BattleResInfo(isAttacker, damage, isHit, isCrit, isKill, attackerBuffChange,
+            defenderBuffChange, attackerPosChange, defenderPosChange, visualResult);
+
+        return battleResInfo;
     }
-    
 }
