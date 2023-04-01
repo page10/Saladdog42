@@ -21,8 +21,8 @@ public class BattleManager : MonoBehaviour
         battleGuyInfos.Clear();
 
         // 双方受武器和地形影响后的status
-        CharacterStatus attackerModifiedStatus = battleInputInfo.attackerStatus + battleInputInfo.attackerTerrainStatus;
-        CharacterStatus defenderModifiedStatus = battleInputInfo.defenderStatus + battleInputInfo.defenderTerrainStatus;
+        CharacterStatus attackerModifiedStatus = battleInputInfo.attacker.Status + battleInputInfo.attackerTerrainStatus;
+        CharacterStatus defenderModifiedStatus = battleInputInfo.defender.Status + battleInputInfo.defenderTerrainStatus;
 
         attackerModifiedStatus.attack += battleInputInfo.attackerWeapon.atkPower;
         defenderModifiedStatus.attack += battleInputInfo.defenderWeapon.atkPower;
@@ -32,8 +32,8 @@ public class BattleManager : MonoBehaviour
                 true,
                 attackerActPointsBase - battleInputInfo.attackerWeapon.GetActionCostByType().initCost,
                 battleInputInfo.attackerWeapon.GetActionCostByType(),
-                attackerModifiedStatus,
-                battleInputInfo.attackerWeapon
+                attackerModifiedStatus,battleInputInfo.attacker,
+                battleInputInfo.attackerWeapon,battleInputInfo.attackerPos
             )
         );
         battleGuyInfos.Add(
@@ -41,8 +41,8 @@ public class BattleManager : MonoBehaviour
                 false,
                 CanFightBack() ? (defenderActPointsBase - battleInputInfo.defenderWeapon.GetActionCostByType().initCost) : 0,
                 battleInputInfo.defenderWeapon.GetActionCostByType(),
-                defenderModifiedStatus,
-                battleInputInfo.defenderWeapon
+                defenderModifiedStatus,battleInputInfo.defender,
+                battleInputInfo.defenderWeapon,battleInputInfo.defenderPos
             )
         );
     }
@@ -53,9 +53,6 @@ public class BattleManager : MonoBehaviour
     public void StartBattle()
     {
         CalInitStatus();
-        SingleBattleInfo = new List<BattleResInfo>();
-
-
         // // 第一次打架
         while (true) // 这里没有因为死亡而停止计算 但是死亡的话 会有一个死亡的结果输出 在另外的逻辑里根据这个运算实际结果
         {
@@ -97,8 +94,70 @@ public class BattleManager : MonoBehaviour
     /// <summary>
     /// 根据生成的battleResInfo 把伤害和状态修改施加到角色身上
     /// </summary>
-    public void GenerateHit()
+    public BattleAnimEvent GenerateHit()
     {
+        SingleBattleInfo = new List<BattleResInfo>();
+        Vector2Int faceDirection = (battleInputInfo.defender.gPos.grid - battleInputInfo.attacker.gPos.grid) /
+                                   Mathf.RoundToInt(Vector2Int.Distance(battleInputInfo.defender.gPos.grid,
+                                       battleInputInfo.attacker.gPos.grid));
+        BattleAnimEvent changeDirection = new BattleAnimEvent(new ChangeFaceDirection(battleInputInfo.attacker,faceDirection));
+        BattleAnimEvent lastEvent = new BattleAnimEvent(new ChangeFaceDirection(battleInputInfo.defender, -faceDirection));
+        changeDirection.NextEvents.Add(lastEvent);
+
+        for (int i = 0; i < SingleBattleInfo.Count; i++)
+        {
+            BattleResInfo battleResInfo = SingleBattleInfo[i];
+            BattleAnimEvent battleAnim =
+                new BattleAnimEvent(new CharacterDoAction(battleResInfo.attacker, CharacterDoAction.Attack));
+            lastEvent.NextEvents.Add(battleAnim);
+            lastEvent = battleAnim;
+            if (battleResInfo.isHit)
+            {
+                battleAnim = new BattleAnimEvent(new Wait(0.2f)); // 等待0.5s 先这么写 之后读取
+                lastEvent.NextEvents.Add(battleAnim);
+                lastEvent = battleAnim;
+                battleAnim = new BattleAnimEvent(new CharacterDoAction(battleResInfo.defender, CharacterDoAction.Hurt));
+                lastEvent.NextEvents.Add(battleAnim);
+                lastEvent = battleAnim;
+                BattleAnimEvent battleAnim3 = new BattleAnimEvent(new PopText(battleResInfo.defender,
+                    battleResInfo.damage.ToString(), PopText.Hit));
+                lastEvent.NextEvents.Add(battleAnim3);
+
+                // 这里还要加上一个判定是否死亡的逻辑
+                // 如果死亡了 就要加上一个死亡的动画
+                if (battleResInfo.isKill)
+                {
+                    battleAnim = new BattleAnimEvent(new Wait(0.2f)); // 等待0.5s 先这么写 之后读取
+                    lastEvent.NextEvents.Add(battleAnim);
+                    lastEvent = battleAnim;
+
+                    battleAnim = new BattleAnimEvent(new RemoveCharacter(battleResInfo.defender));
+                    lastEvent.NextEvents.Add(battleAnim);
+                    lastEvent = battleAnim;
+
+                    break;
+                }
+            }
+            else
+            {
+                BattleAnimEvent battleAnim2 =
+                    new BattleAnimEvent(new PopText(battleResInfo.defender, "miss", PopText.Miss));
+                lastEvent.NextEvents.Add(battleAnim2);
+                lastEvent = battleAnim2;
+            }
+        }
+        // 打完了 转回去
+        // 这里先写俩人都播转回去的动画 
+        // 播的时候判断一下是不是还存在 如果已经不存在了就不用播了
+        
+        BattleAnimEvent battleAnim4 = new BattleAnimEvent(new ChangeFaceDirection(battleInputInfo.attacker, ChangeFaceDirection.Default));
+        lastEvent.NextEvents.Add(battleAnim4);
+        BattleAnimEvent battleAnim5 = new BattleAnimEvent(new ChangeFaceDirection(battleInputInfo.defender, ChangeFaceDirection.Default));
+        lastEvent.NextEvents.Add(battleAnim5);
+        BattleAnimEvent battleAnim6 = new BattleAnimEvent(new Wait(0.2f));
+        battleAnim4.NextEvents.Add(battleAnim6);
+         
+        return changeDirection;
     }
 
     /// <summary>
@@ -186,10 +245,15 @@ public class BattleManager : MonoBehaviour
         CharacterStatus defenderBuffChange = new CharacterStatus(); // 先占个坑 受击方buff变化
         Vector2Int attackerPosChange = new Vector2Int(0, 0); // 先占个坑 攻击方位置变化
         Vector2Int defenderPosChange = new Vector2Int(0, 0); // 先占个坑 受击方位置变化
-        VisualResult visualResult = new VisualResult();
-        BattleResInfo battleResInfo = new BattleResInfo(isAttacker, damage, isHit, isCrit, isKill, attackerBuffChange,
-            defenderBuffChange, attackerPosChange, defenderPosChange, visualResult);
 
+        BattleResInfo battleResInfo = new BattleResInfo(isAttacker, damage, isHit, isCrit, isKill, attackerBuffChange,
+            defenderBuffChange, attackerPosChange, defenderPosChange, attacker.characterObject, defender.characterObject);
+        
+
+        
+        
         return battleResInfo;
     }
+
+
 }

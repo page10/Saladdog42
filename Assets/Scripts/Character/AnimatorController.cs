@@ -10,22 +10,32 @@ public class AnimatorController : MonoBehaviour  //监听animator 根据它的�
 {
     private Animator animator;
     private MoveByPath moveByPath;  
-    private GameObject mask;
+    //private GameObject mask;
     private bool startedMove = false;  
     public bool finishedMove = false;
+    private SpriteRenderer spriteRenderer;
 
     private void Awake() {
         animator = GetComponentInChildren<Animator>();
         moveByPath = GetComponent<MoveByPath>();
 
         //debug 
-        mask = GetComponentInChildren<MovementMask>().gameObject;
+        //mask = GetComponentInChildren<MovementMask>().gameObject;
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
     }
 
     private void Update() {  //监听某些状态 
         if (startedMove && moveByPath != null) {
             if (moveByPath.IsMoving == false) {
                 FinishMove();  //「移动完了」是个概括 所以是个函数 一般人类说话里的概括就是函数 
+            }
+            else
+            {
+                if (animator)
+                {
+                    animator.SetFloat("DirectionX", moveByPath.MovingDirection.x);
+                    animator.SetFloat("DirectionY", moveByPath.MovingDirection.y);
+                }
             }
             //Time.deltaTime 是两帧update之间的时间间隔
             //Fixeddeltatime 是两个逻辑帧之间的时间间隔 按照tick来作为最小单位（int）
@@ -39,6 +49,10 @@ public class AnimatorController : MonoBehaviour  //监听animator 根据它的�
             moveByPath.StartMove(path);
         }
         startedMove = true;
+        if (animator)
+        {
+            animator.SetBool( "Moving", true);
+        }
     }
 
     public bool IsMoveFinished(bool needReset = true)  //动画是不是播放完了 
@@ -55,13 +69,33 @@ public class AnimatorController : MonoBehaviour  //监听animator 根据它的�
     private void FinishMove()
     {
         finishedMove = true;
-        mask.SetActive(true);
+        if (spriteRenderer)
+        {
+            spriteRenderer.color = Color.gray;
+        }
+        //mask.SetActive(true);
+        if (animator)
+        {
+            animator.SetBool( "Moving", false);
+            animator.SetFloat("DirectionX", 0);
+            animator.SetFloat("DirectionY", -1);
+        }
     }
 
     public void NewTurn()
     {
-        mask.SetActive(false);
+        //mask.SetActive(false);
+        if (spriteRenderer)
+        {
+            spriteRenderer.color = Color.white;
+        }
         startedMove = finishedMove = false;
+        if (animator)
+        {
+            animator.SetBool( "Moving", false);
+            animator.SetFloat("DirectionX", 0);
+            animator.SetFloat("DirectionY", -1);
+        }
 
     }
 

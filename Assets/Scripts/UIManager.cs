@@ -40,7 +40,7 @@ public class UIManager : MonoBehaviour
 
     public void ShowAttackRange(CharacterAttack characterAttack, List<Vector2Int> moveRange, Vector2Int mapSize)
     {
-
+        GetCoveredRange(characterAttack, moveRange, mapSize);
         List<Vector2Int> attackShowRange = new List<Vector2Int>();
         for (int i = 0; i < logicCoverRange.Count; i++)
         {

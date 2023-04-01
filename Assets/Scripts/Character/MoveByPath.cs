@@ -9,6 +9,7 @@ public class MoveByPath : MonoBehaviour
     public bool IsMoving { get => isMoving; }
     public float moveSpeed = 400.00f;
     private List<PositionAndGrid> pathNodes = new List<PositionAndGrid>();  //只需要被传 不一定需要被别人知道
+    public Vector2 MovingDirection { get; private set; } = Vector2.zero;
 
 
     public void StartMove(List<Vector2Int> path)
@@ -76,6 +77,7 @@ public class MoveByPath : MonoBehaviour
             xDir * thisTickMoveSpeed,
             yDir * thisTickMoveSpeed
         );
+        MovingDirection = new Vector2(xDir, yDir);
 
     }
 }

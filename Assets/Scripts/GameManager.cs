@@ -722,7 +722,9 @@ public class GameManager : MonoBehaviour
             attack.weaponCurIndex = 0;
             attack.AddWeapon(new WeaponObj(1, 1, 3, Constants.TargetType_Ally, WeaponType.NormalAttack));
         }
-        characters[playerIndex].Add(new CharacterObject(gPos, slaveTo, animator, attack));
+
+        CharacterObject characterObject = character.GetComponent<CharacterObject>();
+        characters[playerIndex].Add(characterObject);
     }
 
 
