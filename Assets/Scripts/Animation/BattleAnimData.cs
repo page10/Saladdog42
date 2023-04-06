@@ -25,7 +25,7 @@ using UnityEngine;
     public struct CharacterMove
     {
         public CharacterObject Character;
-        public Vector2[] Nodes;
+        public Vector2Int[] Nodes;
         public float Speed;
         public int Index;
     }
@@ -133,15 +133,15 @@ using UnityEngine;
     /// <summary>
     /// 当前的event 和接下来的event list
     /// </summary>
-    public class BattleAnimEvent
+    public class BattleAnimData
     {
-        public object ThisEvent;
-        public List<BattleAnimEvent> NextEvents;
+        public object ThisEventData;
+        public List<BattleAnimData> NextEventsDatas;
 
-        public BattleAnimEvent(object thisEvent)
+        public BattleAnimData(object thisEventData)
         {
-            ThisEvent = thisEvent;
-            NextEvents = new List<BattleAnimEvent>();
+            ThisEventData = thisEventData;
+            NextEventsDatas = new List<BattleAnimData>();
         }
     }
 

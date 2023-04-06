@@ -17,6 +17,8 @@ public class CharacterObject : MonoBehaviour
         slaveTo = GetComponent<SlaveState>();
         animator = GetComponentInChildren<AnimatorController>();
         attack = GetComponent<CharacterAttack>();
+        // debug 之后这里要传入参数生成不同种类的
+        Status = GetInitStatusByType(MoveType.Land);
     }
     
     public bool IsEnemy(CharacterObject target)
@@ -47,6 +49,13 @@ public class CharacterObject : MonoBehaviour
             res |= Constants.TargetType_Self;
         }
 
+        return res;
+    }
+
+    private CharacterStatus GetInitStatusByType(MoveType type)
+    {
+        // todo: 这里之后要写读表
+        CharacterStatus res = new CharacterStatus(9, 9, 3, 9, 30, 100, 10, 90, 80);
         return res;
     }
 }

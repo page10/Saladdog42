@@ -53,10 +53,15 @@ MonoBehaviour:
   - moveType: 2
     moveCost: 1
   percentageModifier:
-    attack: 100
-    defense: 200
-    mDefense: 300
-    dodge: 400
+    attack: 0
+    mAttack: 0
+    defense: 1
+    mDefense: 1
+    hp: 0
+    hit: 0
+    dodge: 10
+    crit: 0
+    speed: 0
   terrainType:
     terrainTypeName: Grass
     clips:

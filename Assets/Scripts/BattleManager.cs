@@ -1,17 +1,53 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Structs;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class BattleManager : MonoBehaviour
 {
-    public BattleInputInfo battleInputInfo { get; set; }
-    public List<BattleResInfo> SingleBattleInfo { get; set; }
+    public BattleInputInfo battleInputInfo { get; private set; }
+    public List<BattleResInfo> SingleBattleInfo { get; set; } = new List<BattleResInfo>();
     private List<BattleGuyInfo> battleGuyInfos = new List<BattleGuyInfo>();
     
     private const int comboThreshold = 5;
     private const int attackerActPointsBase = 7;
     private const int defenderActPointsBase = 6;
+    
+    public bool IsPlayingAnimation { get; private set; }
+    
+    private List<BattleAnimNode> battleAnimTimelineNodes = new List<BattleAnimNode>();
+
+    private void Update()
+    {
+        List<BattleAnimNode> toAdd = new List<BattleAnimNode>();
+        int idx = 0;
+        while (idx < battleAnimTimelineNodes.Count)
+        {
+            if (battleAnimTimelineNodes[idx].UpdateNode(Time.deltaTime))
+            {
+                foreach (BattleAnimData n in battleAnimTimelineNodes[idx].NextEvents)
+                {
+                    BattleAnimNode node = BattleAnimNode.FromBattleAnimData(n);
+                    toAdd.Add(node);
+                }
+                battleAnimTimelineNodes.RemoveAt(idx);
+            }
+            else
+            {
+                idx++;
+            }
+        }
+
+        foreach (BattleAnimNode node in toAdd)
+        {
+            battleAnimTimelineNodes.Add(node);
+        }
+        
+        IsPlayingAnimation = battleAnimTimelineNodes.Count > 0;
+
+    }
 
     /// <summary>
     /// 计算双方受武器和地形影响后的status
@@ -50,14 +86,16 @@ public class BattleManager : MonoBehaviour
     /// <summary>
     /// 开始战斗 获得完整的战斗信息
     /// </summary>
-    public void StartBattle()
+    public void StartBattle(BattleInputInfo battleInputInfo)
     {
+        this.battleInputInfo = battleInputInfo;
         CalInitStatus();
+        SingleBattleInfo.Clear();
         // // 第一次打架
         while (true) // 这里没有因为死亡而停止计算 但是死亡的话 会有一个死亡的结果输出 在另外的逻辑里根据这个运算实际结果
         {
             battleGuyInfos.Sort((BattleGuyInfo a, BattleGuyInfo b) =>  a.actPoints > b.actPoints ? -1 : 1 );
-            if (battleGuyInfos[0].actPoints > 0)
+            if (battleGuyInfos[0].actPoints > battleGuyInfos[0].actionCosts.attackCost)
             {
                 FightOnce(battleGuyInfos[0], battleGuyInfos[1]);
                 battleGuyInfos[0].actPoints -= battleGuyInfos[0].actionCosts.attackCost;
@@ -79,10 +117,24 @@ public class BattleManager : MonoBehaviour
                 battleGuyInfos[1 - attackerIndex] // 讨巧获得了另一方下标
             );
         }
+        
+        GenerateHit();
+    }
+
+    /// <summary>
+    /// 播动画用的接口
+    /// </summary>
+    public void StartBattleAnim()
+    {
+        if (IsPlayingAnimation) return;
+        IsPlayingAnimation = true;
+        battleAnimTimelineNodes.Clear();
+        
+        battleAnimTimelineNodes.Add(BattleAnimNode.FromBattleAnimData(GenerateBattleAnimEvent()));
+
     }
 
     private void FightOnce(BattleGuyInfo attackGuyInfo, BattleGuyInfo defendGuyInfo)
-
     {
         int times = attackGuyInfo.weaponObj.weaponType == WeaponType.DoubleAttack ? 2 : 1;
         for (int i = 0; i < times; i++)
@@ -92,72 +144,110 @@ public class BattleManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 根据生成的battleResInfo 把伤害和状态修改施加到角色身上
+    /// 根据生成的battleResInfo 生成动画信息
     /// </summary>
-    public BattleAnimEvent GenerateHit()
+    private BattleAnimData GenerateBattleAnimEvent()
     {
-        SingleBattleInfo = new List<BattleResInfo>();
         Vector2Int faceDirection = (battleInputInfo.defender.gPos.grid - battleInputInfo.attacker.gPos.grid) /
                                    Mathf.RoundToInt(Vector2Int.Distance(battleInputInfo.defender.gPos.grid,
                                        battleInputInfo.attacker.gPos.grid));
-        BattleAnimEvent changeDirection = new BattleAnimEvent(new ChangeFaceDirection(battleInputInfo.attacker,faceDirection));
-        BattleAnimEvent lastEvent = new BattleAnimEvent(new ChangeFaceDirection(battleInputInfo.defender, -faceDirection));
-        changeDirection.NextEvents.Add(lastEvent);
+        BattleAnimData changeDirection = new BattleAnimData(new ChangeFaceDirection(battleInputInfo.attacker,faceDirection));
+        BattleAnimData lastData = new BattleAnimData(new ChangeFaceDirection(battleInputInfo.defender, -faceDirection));
+        changeDirection.NextEventsDatas.Add(lastData);
 
         for (int i = 0; i < SingleBattleInfo.Count; i++)
         {
             BattleResInfo battleResInfo = SingleBattleInfo[i];
-            BattleAnimEvent battleAnim =
-                new BattleAnimEvent(new CharacterDoAction(battleResInfo.attacker, CharacterDoAction.Attack));
-            lastEvent.NextEvents.Add(battleAnim);
-            lastEvent = battleAnim;
+            BattleAnimData battleAnim =
+                new BattleAnimData(new CharacterDoAction(battleResInfo.attacker, CharacterDoAction.Attack));
+            lastData.NextEventsDatas.Add(battleAnim);
+            lastData = battleAnim;
+            
+            // 每个动作一开始都要wait0.2 无论有没有命中 
+            // todo 之后等的这个攻击动画时间要配置
+            battleAnim = new BattleAnimData(new Wait(0.5f)); // 等待0.5s 先这么写 之后读取
+            lastData.NextEventsDatas.Add(battleAnim);
+            lastData = battleAnim;
+            
             if (battleResInfo.isHit)
             {
-                battleAnim = new BattleAnimEvent(new Wait(0.2f)); // 等待0.5s 先这么写 之后读取
-                lastEvent.NextEvents.Add(battleAnim);
-                lastEvent = battleAnim;
-                battleAnim = new BattleAnimEvent(new CharacterDoAction(battleResInfo.defender, CharacterDoAction.Hurt));
-                lastEvent.NextEvents.Add(battleAnim);
-                lastEvent = battleAnim;
-                BattleAnimEvent battleAnim3 = new BattleAnimEvent(new PopText(battleResInfo.defender,
+                battleAnim = new BattleAnimData(new CharacterDoAction(battleResInfo.defender, CharacterDoAction.Hurt));
+                lastData.NextEventsDatas.Add(battleAnim);
+                lastData = battleAnim;
+                BattleAnimData battleAnim3 = new BattleAnimData(new PopText(battleResInfo.defender,
                     battleResInfo.damage.ToString(), PopText.Hit));
-                lastEvent.NextEvents.Add(battleAnim3);
+                lastData.NextEventsDatas.Add(battleAnim3);
 
                 // 这里还要加上一个判定是否死亡的逻辑
                 // 如果死亡了 就要加上一个死亡的动画
                 if (battleResInfo.isKill)
                 {
-                    battleAnim = new BattleAnimEvent(new Wait(0.2f)); // 等待0.5s 先这么写 之后读取
-                    lastEvent.NextEvents.Add(battleAnim);
-                    lastEvent = battleAnim;
+                    battleAnim = new BattleAnimData(new Wait(0.5f)); // 等待0.5s 先这么写 之后读取
+                    lastData.NextEventsDatas.Add(battleAnim);
+                    lastData = battleAnim;
 
-                    battleAnim = new BattleAnimEvent(new RemoveCharacter(battleResInfo.defender));
-                    lastEvent.NextEvents.Add(battleAnim);
-                    lastEvent = battleAnim;
+                    battleAnim = new BattleAnimData(new RemoveCharacter(battleResInfo.defender));
+                    lastData.NextEventsDatas.Add(battleAnim);
+                    lastData = battleAnim;
 
                     break;
                 }
             }
             else
             {
-                BattleAnimEvent battleAnim2 =
-                    new BattleAnimEvent(new PopText(battleResInfo.defender, "miss", PopText.Miss));
-                lastEvent.NextEvents.Add(battleAnim2);
-                lastEvent = battleAnim2;
+                BattleAnimData battleAnim2 =
+                    new BattleAnimData(new PopText(battleResInfo.defender, "miss", PopText.Miss));
+                lastData.NextEventsDatas.Add(battleAnim2);
+                lastData = battleAnim2;
             }
         }
         // 打完了 转回去
         // 这里先写俩人都播转回去的动画 
         // 播的时候判断一下是不是还存在 如果已经不存在了就不用播了
         
-        BattleAnimEvent battleAnim4 = new BattleAnimEvent(new ChangeFaceDirection(battleInputInfo.attacker, ChangeFaceDirection.Default));
-        lastEvent.NextEvents.Add(battleAnim4);
-        BattleAnimEvent battleAnim5 = new BattleAnimEvent(new ChangeFaceDirection(battleInputInfo.defender, ChangeFaceDirection.Default));
-        lastEvent.NextEvents.Add(battleAnim5);
-        BattleAnimEvent battleAnim6 = new BattleAnimEvent(new Wait(0.2f));
-        battleAnim4.NextEvents.Add(battleAnim6);
+        BattleAnimData battleAnim4 = new BattleAnimData(new ChangeFaceDirection(battleInputInfo.attacker, ChangeFaceDirection.Default));
+        lastData.NextEventsDatas.Add(battleAnim4);
+        BattleAnimData battleAnim5 = new BattleAnimData(new ChangeFaceDirection(battleInputInfo.defender, ChangeFaceDirection.Default));
+        lastData.NextEventsDatas.Add(battleAnim5);
+        BattleAnimData battleAnim6 = new BattleAnimData(new Wait(0.2f));
+        battleAnim4.NextEventsDatas.Add(battleAnim6);
          
         return changeDirection;
+    }
+
+    /// <summary>
+    /// 把伤害和状态修改施加到角色身上
+    /// 执行动画播放
+    /// </summary>
+    private void GenerateHit()
+    {
+        // 对游戏的逻辑数据进行修改 把数据修改到gameManager里的角色身上
+        //todo 死了之后如何移除？
+        // 直接修改传入的battleInputInfo里的attacker和defender就可以 因为是类 引用类型
+        foreach (var battleResInfo in SingleBattleInfo)
+        {
+            if (battleResInfo.isAttacker)  // 攻击方打的
+            {
+                battleInputInfo.defender.Status.hp -= battleResInfo.damage;
+                if (battleResInfo.isKill)
+                {
+                    battleInputInfo.defender.Status.hp = 0;
+                    break;  // 任意一方战死则本次战斗结束
+                }
+            }
+            else  // 反击方打的
+            {
+                battleInputInfo.attacker.Status.hp -= battleResInfo.damage;
+                if (battleResInfo.isKill)
+                {
+                    battleInputInfo.attacker.Status.hp = 0;
+                    break;  // 任意一方战死则本次战斗结束
+                }
+            }
+            
+        }
+        
+        
     }
 
     /// <summary>
@@ -203,11 +293,14 @@ public class BattleManager : MonoBehaviour
     /// <param name="defender">本次防御人</param>
     private BattleResInfo CalDamage(BattleGuyInfo attacker, BattleGuyInfo defender)
     {
+        
         CharacterStatus thisAttackStatus = attacker.characterStatus;
         CharacterStatus thisDefendStatus = defender.characterStatus;
         bool isAttacker = attacker.isAttacker;
 
         int hit = thisAttackStatus.hit - thisDefendStatus.dodge;
+        Debug.Log("hit:" + thisAttackStatus.hit);
+        Debug.Log("dodge:" + thisAttackStatus.dodge);
         int crit = thisAttackStatus.crit;
         int damage = thisAttackStatus.attack - thisDefendStatus.defense;
         bool isCrit = false;
@@ -225,14 +318,14 @@ public class BattleManager : MonoBehaviour
             }
 
             // 判定是否杀死
-            if (damage >= thisDefendStatus.hp)
+            if (damage >= defender.characterStatus.hp)
             {
                 isKill = true;
-                thisDefendStatus.hp = 0;
+                defender.characterStatus.hp = 0;
             }
             else
             {
-                thisDefendStatus.hp -= damage;
+                defender.characterStatus.hp -= damage;
             }
         }
         else // 没命中

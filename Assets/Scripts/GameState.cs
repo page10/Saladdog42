@@ -14,7 +14,8 @@ public enum GameControlState
     ShowCommandMenu, // 指令菜单显示
     ConfirmWeapon,
     Attack,
-    CharacterMoveDone, 
+    PlayBattleAnimation,
+    CharacterActionDone, 
     EnemyTurnStart,
     EndTurn,
 }

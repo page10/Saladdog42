@@ -53,10 +53,15 @@ MonoBehaviour:
   - moveType: 2
     moveCost: 3
   percentageModifier:
-    attack: 300
-    defense: 400
-    mDefense: 500
-    dodge: 600
+    attack: 0
+    mAttack: 0
+    defense: 2
+    mDefense: 2
+    hp: 0
+    hit: 0
+    dodge: 30
+    crit: 0
+    speed: 0
   terrainType:
     terrainTypeName: Forest
     clips:
@@ -98,3 +103,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: be409c3f109b1c1499f17929e63be13f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  grid: {x: 0, y: 0}

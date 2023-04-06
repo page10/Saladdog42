@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Collections;
 using System.Collections.Generic;
+using Structs;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -19,6 +20,7 @@ public class GameManager : MonoBehaviour
     private Vector2 currMousePosition;  // 当前鼠标位置
     
     //战斗相关
+    private BattleManager battleManager;
     private SelectedCharacterInfo currSelectedEnemy;  // 当前选中的敌方角色
     private SelectedCharacterInfo attacker;  // 当前选中的我方角色
     private SelectedCharacterInfo defender;  // 当前选中的敌方角色
@@ -37,6 +39,7 @@ public class GameManager : MonoBehaviour
         movementManager = GetComponent<MovementManager>();
         mapGenerator = GetComponent<MapGenerator>();
         uiManager = GetComponent<UIManager>();
+        battleManager = GetComponent<BattleManager>();
         StartGame(2);
         //GameState.gameControlState = GameControlState.SelectCharacter;
         
@@ -87,6 +90,7 @@ public class GameManager : MonoBehaviour
                         SelectedCharacterInfo currentCharacter = GetCharacterInSelectedGrid(selectedGridPos);
                         if (currentCharacter.playerIndex == currentPlayerIndex)  // 选中了我方角色
                         {
+                            attacker = currentCharacter;   
                             selectedCharacter = characters[currentCharacter.playerIndex][currentCharacter.characterIndex];
                             if (selectedCharacter.animator.IsMoveFinished(false) == true)  // 移动完了
                             {
@@ -136,6 +140,7 @@ public class GameManager : MonoBehaviour
                             //选中了敌方角色
                             Debug.Log("selected enemy characters");
                             SelectedCharacterInfo currentEnemy = GetCharacterInSelectedGrid(currSelectGrid);
+                            defender = currentEnemy;  
                             currEnemy = characters[currentCharacter.playerIndex][currentCharacter.characterIndex].gameObject;
                             ChangeGameState(GameControlState.ShowAttackableArea);
                         }
@@ -184,7 +189,7 @@ public class GameManager : MonoBehaviour
                     // 找这个攻击范围 和我可移动范围的交集 
                     // 显示交集内的格子 不显示其他格子
 
-                List<Vector2Int> currAttackRange = selectedCharacter.gameObject.GetComponent<CharacterAttack>().GetAttackRange(currEnemy.GetComponent<GridPosition>().grid, mapGenerator.mapSize, Constants.TargetType_Foe);
+                    List<Vector2Int> currAttackRange = selectedCharacter.gameObject.GetComponent<CharacterAttack>().GetAttackRange(currEnemy.GetComponent<GridPosition>().grid, mapGenerator.mapSize, Constants.TargetType_Foe);
                 List<DijkstraMoveInfo> currMoveRange = movementManager.LogicMoveRange;
 
                 List<Vector2Int> attackableArea = new List<Vector2Int>();
@@ -196,7 +201,7 @@ public class GameManager : MonoBehaviour
                     if (currAttackRange.Contains(gridPos))
                     {
                         attackableArea.Add(gridPos);
-                        Debug.Log("gridPos: " + gridPos);
+                        //Debug.Log("gridPos: " + gridPos);
                     }
                 }
                 if (attackableArea.Count > 0)
@@ -241,9 +246,6 @@ public class GameManager : MonoBehaviour
                     }
 
                 }
-
-
-
                 break;
             case GameControlState.CharacterMoving:
                 {
@@ -257,21 +259,15 @@ public class GameManager : MonoBehaviour
                     MoveByPath moveByPath = selectedCharacter.gameObject.GetComponent<MoveByPath>();
                     if (moveByPath == null || moveByPath.IsMoving == false)  //这次移动移动完成
                     {
+                        // todo 之前那个状态链是想干啥来着？？
+                        // 之前写这个状态链是想干嘛来着？
+                        // 攻击完成之后 写了statusChain = false
                         uiManager.ClearAllRange();
                         if (!statusChain)  // 我还没选敌人
                         {
                             msgDlgButtonInfos = GetMsgDlgButtonInfos();
-                            //这个hasReachableEnemies的判定得改掉 用现在新的菜单列表去管理状态
-                            //bool hasReachableEnemies = hasAttackableCharacters();  //检查周围还有没有可攻击的敌人或友方 
-                            uiManager.ShowMsgDlg(msgDlgButtonInfos);  
-                            //if (hasReachableEnemies)
-                            //{
-                            //     GameState.gameControlState = GameControlState.WeaponSelect;  //选择武器
-                            // }
-                            // else
-                            // {
-                            //     GameState.gameControlState = GameControlState.CharacterMoveDone;  //一个角色移动完成
-                            // }
+
+                            uiManager.ShowMsgDlg(msgDlgButtonInfos);
                             ChangeGameState(GameControlState.ShowCommandMenu);
                             waitTick = 10;
                         }
@@ -301,12 +297,19 @@ public class GameManager : MonoBehaviour
                     {
                         Vector2Int currSelectGrid = movementManager.GetGridPosition(
                                 currentCamera.ScreenToWorldPoint(Input.mousePosition));
-                        SelectedCharacterInfo attackObjectCharacter = GetCharacterInSelectedGrid(currSelectGrid);
-                        if (attackObjectCharacter.characterIndex == Constants.nullCharacterIndex)  // 没选中任何角色
+                        defender = GetCharacterInSelectedGrid(currSelectGrid);  
+                        Debug.Log("defender selected: " + defender.characterIndex);
+                        // 其实是缺一个状态
+                        // 在没有选中敌人的状态下 如果直接移动完成后点击attack 就没有选择敌人的步骤
+                        // 应该是attack按钮绑定的事件中 状态跳转不对 
+                        // 按理说 应该跳转到SelectAttackObject 然后按照这里面的逻辑往下走
+
+                        if (defender.characterIndex == Constants.nullCharacterIndex)  // 没选中任何角色
                         {
-                            ChangeGameState(GameControlState.CharacterMoveDone);
+                            //ChangeGameState(GameControlState.CharacterMoveDone);  
+                            // 在「移动后攻击」的语义里 这个跳转不对 会导致什么都不干直接结束回合了 应该什么都不发生 播放个特效
                         }
-                        else if (attackObjectCharacter.characterIndex == 0)  // 选中了我方角色
+                        else if (defender.characterIndex == 0)  // 选中了我方角色
                         {
                             ChangeGameState(GameControlState.ConfirmWeapon);  // 确认使用的攻击武器
                         }
@@ -327,13 +330,24 @@ public class GameManager : MonoBehaviour
                 break;
             case GameControlState.Attack:
                 {
-                    // 还没做 先直接跳转行动完成阶段了
-                    ChangeGameState(GameControlState.CharacterMoveDone);
+                    Attack();
+                    statusChain = false;  // 重置状态链
+                    ChangeGameState(GameControlState.CharacterActionDone);
                 }
                 break;
-            case GameControlState.CharacterMoveDone:  // 每个角色移动完成后 检查是不是所有角色都移动完成
+            case GameControlState.PlayBattleAnimation:
                 {
+                    if (battleManager.IsPlayingAnimation == false)
+                    {
+                        ChangeGameState(GameControlState.CharacterActionDone);
+                    }
+                }
+                break;
+            case GameControlState.CharacterActionDone:  // 它的语义是 这回合行动结束
+                {
+                    
                     uiManager.ClearAllRange();
+                    selectedCharacter.animator.FinishAction();
                     bool haveAllFinished = true;
                     for (int i = 0; i < characters[0].Count; i++)
                     {
@@ -419,14 +433,51 @@ public class GameManager : MonoBehaviour
         return currentMsgDlgButtonInfos;
 
     }
+    
 
     /// <summary>
-    /// 攻击 debug阶段结束这个character的本轮行动
+    /// 在攻击状态里操作
+    /// </summary>
+    private void Attack()
+    {
+        //todo: 还没写武器选择 这里的attackerWeapon先写成第一个吧
+        BattleInputInfo battleInputInfo = new BattleInputInfo();
+        battleInputInfo.attacker = characters[attacker.playerIndex][attacker.characterIndex];
+        battleInputInfo.defender = characters[defender.playerIndex][defender.characterIndex];
+        battleInputInfo.attackerWeapon = characters[attacker.playerIndex][attacker.characterIndex].attack.Weapons[0];
+        battleInputInfo.defenderWeapon = characters[defender.playerIndex][defender.characterIndex].attack.Weapons[0];
+        battleInputInfo.attackerPos = new Vector2Int(
+            characters[attacker.playerIndex][attacker.characterIndex].gPos.grid.x,
+            characters[attacker.playerIndex][attacker.characterIndex].gPos.grid.y);
+        battleInputInfo.defenderPos = new Vector2Int(
+            characters[defender.playerIndex][defender.characterIndex].gPos.grid.x,
+            characters[defender.playerIndex][defender.characterIndex].gPos.grid.y);
+        battleInputInfo.attackerTerrainStatus = mapGenerator.Map
+        [
+            battleInputInfo.attackerPos.x,
+            battleInputInfo.attackerPos.y
+        ].percentageModifier;
+        battleInputInfo.defenderTerrainStatus = mapGenerator.Map
+        [
+            battleInputInfo.defenderPos.x,
+            battleInputInfo.defenderPos.y
+        ].percentageModifier;
+        battleInputInfo.isSameSide = attacker.playerIndex == defender.playerIndex;
+        
+        battleManager.StartBattle(battleInputInfo);
+        battleManager.StartBattleAnim();
+        ChangeGameState(GameControlState.PlayBattleAnimation);
+    }
+    
+    /// <summary>
+    /// 点这个按钮切到攻击准备状态 在攻击状态里调攻击函数
     /// </summary>
     private void AttackCommand()
     {
-        ChangeGameState(GameControlState.CharacterMoveDone);
         uiManager.HideMsgDlg();
+        // 移动完成之后的选择攻击目标
+        GameState.gameControlState = GameControlState.SelectAttackObject;
+
     }
 
     /// <summary>
@@ -434,7 +485,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void HealCommand()
     {
-        ChangeGameState(GameControlState.CharacterMoveDone);
+        ChangeGameState(GameControlState.CharacterActionDone);
         uiManager.HideMsgDlg();
     }
 
@@ -443,7 +494,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void ExchangeCommand()
     {
-        ChangeGameState(GameControlState.CharacterMoveDone);
+        ChangeGameState(GameControlState.CharacterActionDone);
         uiManager.HideMsgDlg();
     }
 
@@ -452,7 +503,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void BackupCommand()
     {
-        ChangeGameState(GameControlState.CharacterMoveDone);
+        ChangeGameState(GameControlState.CharacterActionDone);
         uiManager.HideMsgDlg();
     }
 
@@ -461,7 +512,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void InventoryCommand()
     {
-        ChangeGameState(GameControlState.CharacterMoveDone);
+        ChangeGameState(GameControlState.CharacterActionDone);
         uiManager.HideMsgDlg();
     }
 
@@ -470,7 +521,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void WaitCommand()
     {
-        ChangeGameState(GameControlState.CharacterMoveDone);
+        ChangeGameState(GameControlState.CharacterActionDone);
         uiManager.HideMsgDlg();
     }
 

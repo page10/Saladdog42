@@ -14,6 +14,7 @@ public class AnimatorController : MonoBehaviour  //监听animator 根据它的�
     private bool startedMove = false;  
     public bool finishedMove = false;
     private SpriteRenderer spriteRenderer;
+    
 
     private void Awake() {
         animator = GetComponentInChildren<Animator>();
@@ -69,16 +70,24 @@ public class AnimatorController : MonoBehaviour  //监听animator 根据它的�
     private void FinishMove()
     {
         finishedMove = true;
-        if (spriteRenderer)
-        {
-            spriteRenderer.color = Color.gray;
-        }
         //mask.SetActive(true);
         if (animator)
         {
             animator.SetBool( "Moving", false);
             animator.SetFloat("DirectionX", 0);
             animator.SetFloat("DirectionY", -1);
+        }
+    }
+
+    /// <summary>
+    /// 这一回合主动动作做完了
+    /// 蒙上一层灰色蒙版
+    /// </summary>
+    public void FinishAction()
+    {
+        if (spriteRenderer)
+        {
+            spriteRenderer.color = Color.gray;
         }
     }
 
@@ -98,6 +107,29 @@ public class AnimatorController : MonoBehaviour  //监听animator 根据它的�
         }
 
     }
+
+    public void PlayAnimation(string animationName)
+    {
+        if (animator)
+        {
+            animator.SetTrigger(animationName);
+        }
+    }
+
+    public void RemoveCharacter()
+    {
+        spriteRenderer.gameObject.SetActive(false);
+    }
+    
+    public void SetFaceDirection(Vector2Int direction)
+    {
+        if (animator)
+        {
+            animator.SetFloat("DirectionX", direction.x);
+            animator.SetFloat("DirectionY", direction.y);
+        }
+    }
+
 
     //写component时候分析 这是不是它该干的活
     //如果不是 就暴露一个接口 

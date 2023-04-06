@@ -131,6 +131,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e29013c4e7327541b4c247404024dcd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  gPos: {fileID: 0}
+  slaveTo: {fileID: 0}
+  animator: {fileID: 0}
+  attack: {fileID: 0}
+  Status:
+    attack: 0
+    mAttack: 0
+    defense: 0
+    mDefense: 0
+    hp: 0
+    hit: 0
+    dodge: 0
+    crit: 0
+    speed: 0
 --- !u!1 &6461995665366758566
 GameObject:
   m_ObjectHideFlags: 0

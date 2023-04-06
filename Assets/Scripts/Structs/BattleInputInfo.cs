@@ -24,6 +24,14 @@ namespace Structs
         /// </summary>
         public WeaponObj defenderWeapon;
         /// <summary>
+        /// 攻击方位置
+        /// </summary>
+        public Vector2Int attackerPos;
+        /// <summary>
+        /// 受击方位置
+        /// </summary>
+        public Vector2Int defenderPos;
+        /// <summary>
         /// 攻击方所在地形
         /// </summary>
         public CharacterStatus attackerTerrainStatus;
@@ -34,17 +42,15 @@ namespace Structs
         /// <summary>
         /// 双方距离
         /// </summary>
-        public readonly int distance;
+        public readonly int distance => Mathf.Abs(attackerPos.x - defenderPos.x) + Mathf.Abs(attackerPos.y - defenderPos.y);
         /// <summary>
         /// 是否是同一方
         /// </summary>
         public bool isSameSide;
-        public Vector2Int attackerPos;
-        public Vector2Int defenderPos;
-        
+
         public BattleInputInfo(CharacterObject attacker, CharacterObject defender, WeaponObj attackerWeapon,
-            WeaponObj defenderWeapon, CharacterStatus attackerTerrainStatus, CharacterStatus defenderTerrainStatus, 
-            bool isSameSide, Vector2Int attackerPos, Vector2Int defenderPos)
+            WeaponObj defenderWeapon, Vector2Int attackerPos, Vector2Int defenderPos, CharacterStatus attackerTerrainStatus, CharacterStatus defenderTerrainStatus, 
+            bool isSameSide)
         {
             this.attacker = attacker;
             this.defender = defender;
@@ -55,7 +61,8 @@ namespace Structs
             this.isSameSide = isSameSide;
             this.attackerPos = attackerPos;
             this.defenderPos = defenderPos;
-            this.distance = Mathf.RoundToInt(Vector2Int.Distance(attackerPos, defenderPos));
+            //distance = Mathf.RoundToInt(Vector2Int.Distance(attackerPos, defenderPos));
+            //distance = Mathf.Abs(attackerPos.x - defenderPos.x) + Mathf.Abs(attackerPos.y - defenderPos.y);
         }
     }
 
