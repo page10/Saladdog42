@@ -222,7 +222,9 @@ public class BattleManager : MonoBehaviour
     private void GenerateHit()
     {
         // 对游戏的逻辑数据进行修改 把数据修改到gameManager里的角色身上
-        //todo 死了之后如何移除？
+        // todo 死了之后如何移除？
+        // 死亡之后的逻辑判定一点都还没写
+        // 涉及到对人操作的逻辑之前都要判断一下死亡 
         // 直接修改传入的battleInputInfo里的attacker和defender就可以 因为是类 引用类型
         foreach (var battleResInfo in SingleBattleInfo)
         {
@@ -244,10 +246,7 @@ public class BattleManager : MonoBehaviour
                     break;  // 任意一方战死则本次战斗结束
                 }
             }
-            
         }
-        
-        
     }
 
     /// <summary>

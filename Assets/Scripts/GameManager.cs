@@ -28,7 +28,7 @@ public class GameManager : MonoBehaviour
     
 
     // 之后要被重构掉的东西
-    private bool statusChain = false;  // 状态链
+    private bool haveSelectedEnemy = false;  // 状态链
     List<MsgDlgButtonInfo> msgDlgButtonInfos = new List<MsgDlgButtonInfo>();  
     private Vector2Int lastPosition;  // 上一个状态时候的character位置
 
@@ -234,7 +234,7 @@ public class GameManager : MonoBehaviour
                                     //lastPosition = currSelectGrid;  // 把这个位置更新了
                                     animatorController.StartMove(moveGrids);
                                     ChangeGameState(GameControlState.CharacterMoving);
-                                    statusChain = true;  // 我之后不能再选敌人
+                                    haveSelectedEnemy = true;  // 我之后不能再选敌人
                                     waitTick = 10;
                                 }
                             }
@@ -259,11 +259,8 @@ public class GameManager : MonoBehaviour
                     MoveByPath moveByPath = selectedCharacter.gameObject.GetComponent<MoveByPath>();
                     if (moveByPath == null || moveByPath.IsMoving == false)  //这次移动移动完成
                     {
-                        // todo 之前那个状态链是想干啥来着？？
-                        // 之前写这个状态链是想干嘛来着？
-                        // 攻击完成之后 写了statusChain = false
                         uiManager.ClearAllRange();
-                        if (!statusChain)  // 我还没选敌人
+                        if (!haveSelectedEnemy)  // 我还没选敌人
                         {
                             msgDlgButtonInfos = GetMsgDlgButtonInfos();
 
@@ -331,7 +328,7 @@ public class GameManager : MonoBehaviour
             case GameControlState.Attack:
                 {
                     Attack();
-                    statusChain = false;  // 重置状态链
+                    haveSelectedEnemy = false;  // 重置状态链
                     ChangeGameState(GameControlState.CharacterActionDone);
                 }
                 break;
