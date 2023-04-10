@@ -30,15 +30,34 @@ public struct WeaponObj
     /// 武器的攻击先后手类型
     /// </summary>
     public WeaponType weaponType;
+    
+    /// <summary>
+    ///  武器的名字
+    /// </summary>
+    public string weaponName;
 
-    public WeaponObj(int atkPower, int minRange, int maxRange, byte target, WeaponType weaponType)
+    /// <summary>
+    /// 武器可使用次数
+    /// </summary>
+    public int count;
+
+    /// <summary>
+    /// 武器图标
+    /// </summary>
+    public string icon;
+
+    public WeaponObj(int atkPower, int minRange, int maxRange, byte target, WeaponType weaponType, string weaponName, int count, string icon)
     {
         this.atkPower = atkPower;
         this.minRange = minRange;
         this.maxRange = maxRange;
         this.target = target;
         this.weaponType = weaponType;
+        this.weaponName = weaponName;
+        this.count = count;
+        this.icon = icon;
     }
+
     
     /// <summary>
     /// 根据武器类型给出战斗行动点消耗

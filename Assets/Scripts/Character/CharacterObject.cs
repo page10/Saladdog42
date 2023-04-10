@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class CharacterObject : MonoBehaviour
 {
@@ -10,9 +11,13 @@ public class CharacterObject : MonoBehaviour
     public AnimatorController animator;
     public CharacterAttack attack;
     public CharacterStatus Status = new CharacterStatus();
+    public int hp;
+    public bool CanBeDestroyed { get; set; } = false;
+    
 
     private void Awake()
     {
+        hp = Status.hp;  // 不知道hp在这里初始化对不对呢
         gPos = GetComponent<GridPosition>();
         slaveTo = GetComponent<SlaveState>();
         animator = GetComponentInChildren<AnimatorController>();

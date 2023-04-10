@@ -223,6 +223,7 @@ public class BattleManager : MonoBehaviour
     {
         // 对游戏的逻辑数据进行修改 把数据修改到gameManager里的角色身上
         // todo 死了之后如何移除？
+        // todo 把所有改status hp的都变成了 改characterObject里的hp 不确定会不会有bug
         // 死亡之后的逻辑判定一点都还没写
         // 涉及到对人操作的逻辑之前都要判断一下死亡 
         // 直接修改传入的battleInputInfo里的attacker和defender就可以 因为是类 引用类型
@@ -230,19 +231,21 @@ public class BattleManager : MonoBehaviour
         {
             if (battleResInfo.isAttacker)  // 攻击方打的
             {
-                battleInputInfo.defender.Status.hp -= battleResInfo.damage;
+                battleInputInfo.defender.hp -= battleResInfo.damage;
                 if (battleResInfo.isKill)
                 {
-                    battleInputInfo.defender.Status.hp = 0;
+                    battleInputInfo.defender.hp = 0;
+                    // battleInputInfo.defender.IsDead = true;  // todo 把isDead写在这里了 应该没问题吧
                     break;  // 任意一方战死则本次战斗结束
                 }
             }
             else  // 反击方打的
             {
-                battleInputInfo.attacker.Status.hp -= battleResInfo.damage;
+                battleInputInfo.attacker.hp -= battleResInfo.damage;
                 if (battleResInfo.isKill)
                 {
-                    battleInputInfo.attacker.Status.hp = 0;
+                    battleInputInfo.attacker.hp = 0;
+                    // battleInputInfo.attacker.IsDead = true;
                     break;  // 任意一方战死则本次战斗结束
                 }
             }
@@ -267,23 +270,7 @@ public class BattleManager : MonoBehaviour
         bool sameSide = battleInputInfo.isSameSide;
         return inRange && !sameSide;
     }
-
-
-    // /// <summary>
-    // /// 计算单次战斗
-    // /// </summary>
-    // /// <param name="isAttacker">是攻击方的攻击</param>
-    // private BattleResInfo CalSingleBattle(bool isAttacker)
-    // {
-    //     if (isAttacker) //这次攻击来自攻击方
-    //     {
-    //         return CalDamage(attackerModifiedStatus, defenderModifiedStatus, true);
-    //     }
-    //     else // 这次攻击来自反击方
-    //     {
-    //         return CalDamage(defenderModifiedStatus, attackerModifiedStatus, false);
-    //     }
-    // }
+    
 
     /// <summary>
     /// 一次伤害计算流程
@@ -317,14 +304,14 @@ public class BattleManager : MonoBehaviour
             }
 
             // 判定是否杀死
-            if (damage >= defender.characterStatus.hp)
+            if (damage >= defender.characterObject.hp)
             {
                 isKill = true;
-                defender.characterStatus.hp = 0;
+                defender.characterObject.hp = 0;
             }
             else
             {
-                defender.characterStatus.hp -= damage;
+                defender.characterObject.hp -= damage;
             }
         }
         else // 没命中

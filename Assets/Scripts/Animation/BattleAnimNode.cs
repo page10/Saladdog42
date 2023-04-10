@@ -68,8 +68,11 @@ public class BattleAnimNode
         if (eve.ThisEventData is PopText)
         {
             PopText p = (PopText)eve.ThisEventData;
+            
             return (elapsed, time, objects) =>
             {
+                return elapsed > 1.0f;
+                // todo 这里试一下
                 // TODO: 之后要写弹出文字 但不是UI 
                 return true;
             };
@@ -79,6 +82,7 @@ public class BattleAnimNode
             RemoveCharacter r = (RemoveCharacter)eve.ThisEventData;
             return (elapsed, time, objects) =>
             {
+                r.Character.CanBeDestroyed = true;  // 不是在运算的时候死亡 而是在动画播放完毕后死亡
                 r.Character.animator.RemoveCharacter();
                 return true;
             };

@@ -244,7 +244,6 @@ public class GameManager : MonoBehaviour
                             }
                         }
                     }
-
                 }
                 break;
             case GameControlState.CharacterMoving:
@@ -282,13 +281,23 @@ public class GameManager : MonoBehaviour
                 break;
             case GameControlState.WeaponSelect:
                 {
-                    //这里还没做武器选择 就直接跳转选择攻击对象状态
+                    //todo 在这里调武器选择UI界面
+                    // 还没做 先直接跳转攻击阶段了
+                    // 之后这里要根据选中的是友方还是敌方 确认不同的武器
+
+                    msgDlgButtonInfos = GetWeaponMsgDlgButtonInfos(selectedCharacter.attack);
+
+                    uiManager.ShowMsgDlg(msgDlgButtonInfos);
+
+
+                    
                     ChangeGameState(GameControlState.SelectAttackObject);
                     waitTick = 10;
                 }
                 break;
             case GameControlState.SelectAttackObject:
                 {
+                    // todo 根据选定的武器拿到攻击范围
                     // SetUIPointerIndex();  // 这个位置可能之后再改
                     if (Input.GetMouseButton(0) && waitTick <= 0)
                     {
@@ -319,17 +328,14 @@ public class GameManager : MonoBehaviour
                 break;
             case GameControlState.ConfirmWeapon:
                 {
-                    // 还没做 先直接跳转攻击阶段了
-                    // 之后这里要根据选中的是友方还是敌方 确认不同的武器
-                    //Debug.Log("GameControlState.ConfirmWeapon");
-                    ChangeGameState(GameControlState.Attack); 
+
                 }
                 break;
             case GameControlState.Attack:
                 {
                     Attack();
                     haveSelectedEnemy = false;  // 重置状态链
-                    ChangeGameState(GameControlState.CharacterActionDone);
+                    ChangeGameState(GameControlState.PlayBattleAnimation);
                 }
                 break;
             case GameControlState.PlayBattleAnimation:
@@ -382,7 +388,6 @@ public class GameManager : MonoBehaviour
         {
             waitTick -= 1;
         }
-
     }
 
     /// <summary>
@@ -391,6 +396,28 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void ChangeGameState(GameControlState state)
     {
+        if (state == GameControlState.SelectCharacter)  // 死亡时移除
+        {
+            selectedCharacter = null;  // 回合开始 把我方和敌方的选中角色都清空
+            currEnemy = null;
+
+            foreach (List<CharacterObject> charas in characters)
+            {
+                int index = 0;
+                while (index < charas.Count)
+                {
+                    if(charas[index].CanBeDestroyed)
+                    {
+                        Destroy(charas[index].gameObject);
+                        charas.RemoveAt(index);
+                    }
+                    else
+                    {
+                        index++;
+                    }
+                }
+            }
+        }
         GameState.gameControlState = state;
     }
 
@@ -430,7 +457,21 @@ public class GameManager : MonoBehaviour
         return currentMsgDlgButtonInfos;
 
     }
-    
+
+    /// <summary>
+    /// 选择武器菜单页面
+    /// </summary>
+    /// <returns></returns>
+    private List<MsgDlgButtonInfo> GetWeaponMsgDlgButtonInfos(CharacterAttack characterAttack)
+    {
+        // todo 把command重新写出来一下 每条command后面都要跟一个状态跳转到attack
+        List<MsgDlgButtonInfo> currentMsgDlgButtonInfos = new List<MsgDlgButtonInfo>();
+        for (int i = 0; i < characterAttack.Weapons.Count; i++)
+        {
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo(characterAttack.Weapons[i].weaponName, () => { characterAttack.weaponCurIndex = i; }));
+        }
+        return currentMsgDlgButtonInfos;
+    }
 
     /// <summary>
     /// 在攻击状态里操作
@@ -473,7 +514,7 @@ public class GameManager : MonoBehaviour
     {
         uiManager.HideMsgDlg();
         // 移动完成之后的选择攻击目标
-        GameState.gameControlState = GameControlState.SelectAttackObject;
+        GameState.gameControlState = GameControlState.WeaponSelect;
 
     }
 
@@ -766,9 +807,9 @@ public class GameManager : MonoBehaviour
         CharacterAttack attack = character.GetComponent<CharacterAttack>();
         if (attack != null)
         {
-            attack.AddWeapon(new WeaponObj(1, 1, 2, Constants.TargetType_Foe, WeaponType.DoubleAttack));
+            attack.AddWeapon(new WeaponObj(1, 1, 2, Constants.TargetType_Foe, WeaponType.DoubleAttack, "targetFoe", 20, "iconPath"));
             attack.weaponCurIndex = 0;
-            attack.AddWeapon(new WeaponObj(1, 1, 3, Constants.TargetType_Ally, WeaponType.NormalAttack));
+            attack.AddWeapon(new WeaponObj(1, 1, 3, Constants.TargetType_Ally, WeaponType.NormalAttack, "targetAlly", 20, "iconPath"));
         }
 
         CharacterObject characterObject = character.GetComponent<CharacterObject>();
