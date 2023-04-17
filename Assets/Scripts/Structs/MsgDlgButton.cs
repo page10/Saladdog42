@@ -9,13 +9,15 @@ public struct MsgDlgButtonInfo
 {
     public string commandText;
     public CommandEvent commandEvent;
+    public object[] parameters;
 
-    public MsgDlgButtonInfo(string commandText, CommandEvent commandEvent)
+    public MsgDlgButtonInfo(string commandText, CommandEvent commandEvent, object[] parameters)
     {
         this.commandText = commandText;
         this.commandEvent = commandEvent;
+        this.parameters = parameters;
     }
-    
+
 }
 
-public delegate void CommandEvent();
+public delegate void CommandEvent(object[] parameters);

@@ -53,7 +53,7 @@ public class MsgDlgBody : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
         //Use this to tell when the user left-clicks on the Button
         if ((pointerEventData.button == PointerEventData.InputButton.Left) && buttonCommand != null)
         {
-            buttonCommand();
+            buttonCommand(m_button.parameters);
         }
     }
 }

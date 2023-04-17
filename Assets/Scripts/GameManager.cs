@@ -1,8 +1,10 @@
+using System;
 using System.Net.Http.Headers;
 using System.Collections;
 using System.Collections.Generic;
 using Structs;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class GameManager : MonoBehaviour
 {
@@ -44,9 +46,9 @@ public class GameManager : MonoBehaviour
         //GameState.gameControlState = GameControlState.SelectCharacter;
         
         //debug用 之后删了
-        msgDlgButtonInfos.Add(new MsgDlgButtonInfo("attack", ()=>{Debug.Log("attack");}));
-        msgDlgButtonInfos.Add(new MsgDlgButtonInfo("exchange", ()=>{Debug.Log("exchange");}));
-        msgDlgButtonInfos.Add(new MsgDlgButtonInfo("skip", ()=>{Debug.Log("skip");}));
+        msgDlgButtonInfos.Add(new MsgDlgButtonInfo("attack", (p)=>{Debug.Log("attack");}, Array.Empty<object>()));
+        msgDlgButtonInfos.Add(new MsgDlgButtonInfo("exchange", (p)=>{Debug.Log("exchange");}, Array.Empty<object>()));
+        msgDlgButtonInfos.Add(new MsgDlgButtonInfo("skip", (p)=>{Debug.Log("skip");}, Array.Empty<object>()));
     }
 
     public int waitTick = 0;
@@ -55,6 +57,7 @@ public class GameManager : MonoBehaviour
 
         switch (GameState.gameControlState)
         {
+            //todo 先选人后选移动位置的那个流程 状态跳转 选武器漏写了
             case GameControlState.NewTurn:
                 {
                     if (currentPlayerIndex != 0)
@@ -328,7 +331,8 @@ public class GameManager : MonoBehaviour
                 break;
             case GameControlState.ConfirmWeapon:
                 {
-
+                    // 还没写确认武器 直接跳转到攻击阶段
+                    ChangeGameState(GameControlState.Attack);
                 }
                 break;
             case GameControlState.Attack:
@@ -433,25 +437,25 @@ public class GameManager : MonoBehaviour
 
         if ((Constants.TargetType_Foe&abilities) == Constants.TargetType_Foe)
         {
-            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Attack", AttackCommand));
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Attack", AttackCommand, Array.Empty<object>()));
         }
         if ((Constants.TargetType_Ally&abilities) == Constants.TargetType_Ally)
         {
-            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Heal", HealCommand));
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Heal", HealCommand, Array.Empty<object>()));
         }
         if (canExchangeItem)
         {
-            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("canExchangeItem", ExchangeCommand));
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("canExchangeItem", ExchangeCommand, Array.Empty<object>()));
         }
         if (canAccessBackup)
         {
-            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("AccessBackup", BackupCommand));
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("AccessBackup", BackupCommand, Array.Empty<object>()));
         }
 
         // 以下是啥时候都要加的按钮
-        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Wait", WaitCommand));
-        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Inventory", InventoryCommand));
-        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Cancel", CancelCommand));  
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Wait", WaitCommand, Array.Empty<object>()));
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Inventory", InventoryCommand, Array.Empty<object>()));
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Cancel", CancelCommand, Array.Empty<object>()));  
 
 
         return currentMsgDlgButtonInfos;
@@ -464,13 +468,20 @@ public class GameManager : MonoBehaviour
     /// <returns></returns>
     private List<MsgDlgButtonInfo> GetWeaponMsgDlgButtonInfos(CharacterAttack characterAttack)
     {
-        // todo 把command重新写出来一下 每条command后面都要跟一个状态跳转到attack
+        // todo 筛选攻击范围内的我方和敌方 如果有才对应显示武器按钮
         List<MsgDlgButtonInfo> currentMsgDlgButtonInfos = new List<MsgDlgButtonInfo>();
         for (int i = 0; i < characterAttack.Weapons.Count; i++)
         {
-            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo(characterAttack.Weapons[i].weaponName, () => { characterAttack.weaponCurIndex = i; }));
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo(characterAttack.Weapons[i].weaponName, WeaponCommand, new object[] { i }));
         }
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Cancel", CancelCommand, Array.Empty<object>()));  
         return currentMsgDlgButtonInfos;
+    }
+    
+    private void WeaponCommand(params object[] args)
+    {
+        selectedCharacter.attack.weaponCurIndex = (int)args[0];
+        uiManager.HideMsgDlg();
     }
 
     /// <summary>
@@ -510,7 +521,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// 点这个按钮切到攻击准备状态 在攻击状态里调攻击函数
     /// </summary>
-    private void AttackCommand()
+    private void AttackCommand(object[] args)
     {
         uiManager.HideMsgDlg();
         // 移动完成之后的选择攻击目标
@@ -521,7 +532,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// Heal debug阶段结束这个character的本轮行动
     /// </summary>
-    private void HealCommand()
+    private void HealCommand(object[] args)
     {
         ChangeGameState(GameControlState.CharacterActionDone);
         uiManager.HideMsgDlg();
@@ -530,7 +541,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// 交换物品 debug阶段结束这个character的本轮行动
     /// </summary>
-    private void ExchangeCommand()
+    private void ExchangeCommand(object[] args)
     {
         ChangeGameState(GameControlState.CharacterActionDone);
         uiManager.HideMsgDlg();
@@ -539,7 +550,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// 运输队 debug阶段结束这个character的本轮行动
     /// </summary>
-    private void BackupCommand()
+    private void BackupCommand(object[] args)
     {
         ChangeGameState(GameControlState.CharacterActionDone);
         uiManager.HideMsgDlg();
@@ -548,7 +559,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// 运输队 debug阶段结束这个character的本轮行动
     /// </summary>
-    private void InventoryCommand()
+    private void InventoryCommand(object[] args)
     {
         ChangeGameState(GameControlState.CharacterActionDone);
         uiManager.HideMsgDlg();
@@ -557,7 +568,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// 结束这个character的本轮行动
     /// </summary>
-    private void WaitCommand()
+    private void WaitCommand(object[] args)
     {
         ChangeGameState(GameControlState.CharacterActionDone);
         uiManager.HideMsgDlg();
@@ -566,7 +577,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// 返回上一个行动状态
     /// </summary>
-    private void CancelCommand()
+    private void CancelCommand(object[] args)
     {
         selectedCharacter.animator.NewTurn();  // 把animator状态重置一下
         GridPosition gPos = selectedCharacter.gameObject.GetComponent<GridPosition>();
@@ -809,6 +820,7 @@ public class GameManager : MonoBehaviour
         {
             attack.AddWeapon(new WeaponObj(1, 1, 2, Constants.TargetType_Foe, WeaponType.DoubleAttack, "targetFoe", 20, "iconPath"));
             attack.weaponCurIndex = 0;
+            //todo 治疗相关的战斗逻辑没写 是治疗武器的话 数值怎么计算 血量上限的计算
             attack.AddWeapon(new WeaponObj(1, 1, 3, Constants.TargetType_Ally, WeaponType.NormalAttack, "targetAlly", 20, "iconPath"));
         }
 

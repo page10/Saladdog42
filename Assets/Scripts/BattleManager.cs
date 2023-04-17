@@ -149,8 +149,8 @@ public class BattleManager : MonoBehaviour
     private BattleAnimData GenerateBattleAnimEvent()
     {
         Vector2Int faceDirection = (battleInputInfo.defender.gPos.grid - battleInputInfo.attacker.gPos.grid) /
-                                   Mathf.RoundToInt(Vector2Int.Distance(battleInputInfo.defender.gPos.grid,
-                                       battleInputInfo.attacker.gPos.grid));
+                                   Mathf.RoundToInt(Mathf.Abs(battleInputInfo.defender.gPos.grid.x - battleInputInfo.attacker.gPos.grid.x)
+                                                    + Mathf.Abs(battleInputInfo.defender.gPos.grid.y - battleInputInfo.attacker.gPos.grid.y));
         BattleAnimData changeDirection = new BattleAnimData(new ChangeFaceDirection(battleInputInfo.attacker,faceDirection));
         BattleAnimData lastData = new BattleAnimData(new ChangeFaceDirection(battleInputInfo.defender, -faceDirection));
         changeDirection.NextEventsDatas.Add(lastData);
@@ -235,7 +235,6 @@ public class BattleManager : MonoBehaviour
                 if (battleResInfo.isKill)
                 {
                     battleInputInfo.defender.hp = 0;
-                    // battleInputInfo.defender.IsDead = true;  // todo 把isDead写在这里了 应该没问题吧
                     break;  // 任意一方战死则本次战斗结束
                 }
             }
