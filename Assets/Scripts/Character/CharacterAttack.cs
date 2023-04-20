@@ -120,23 +120,23 @@ public class CharacterAttack : MonoBehaviour
                     addGrid.x = gridPos.x + i;
                     addGrid.y = gridPos.y + j;
 
-                    if (addGrid.x < mapSize.x && 
-                        addGrid.y < mapSize.y && 
+                    if (addGrid.x < mapSize.x &&
+                        addGrid.y < mapSize.y &&
                         addGrid.x >= 0 && addGrid.y >= 0 &&
-                        (Mathf.Abs(i) + Mathf.Abs(j)) <= weapon.maxRange &&  
-                        (Mathf.Abs(i) + Mathf.Abs(j)) >= weapon.minRange 
-                        )  
+                        (Mathf.Abs(i) + Mathf.Abs(j)) <= weapon.maxRange &&
+                        (Mathf.Abs(i) + Mathf.Abs(j)) >= weapon.minRange
+                       )
+                    {
+                        int index = WeaponRangeIndex(addGrid);
+                        if (index >= 0)
                         {
-                            int index = WeaponRangeIndex(addGrid);
-                            if (index >= 0)
-                            {
-                                weaponRange[index].MixedType(weapon.target);
-                            }
-                            else 
-                            {
-                                weaponRange.Add(new CoveredRange(weapon.target, addGrid));
-                            }
+                            weaponRange[index] = CoveredRange.MixedType(weaponRange[index], weapon.target);
                         }
+                        else
+                        {
+                            weaponRange.Add(new CoveredRange(weapon.target, addGrid));
+                        }
+                    }
                 }
             }
         }

@@ -8,6 +8,8 @@ public class UIManager : MonoBehaviour
     private List<GameObject> attackRange = new List<GameObject>();
     private List<GameObject> attackableMoveRange = new List<GameObject>();
 
+    private List<Vector2Int> attackHealRange = new List<Vector2Int>();  // 攻击范围和移动范围都覆盖的范围
+
     /// <summary>
     /// 对于各类单位类型 格子的可触及范围
     /// </summary>
@@ -37,31 +39,100 @@ public class UIManager : MonoBehaviour
             }
         }       
     }
+    
+    /// <summary>
+    /// 显示移动、攻击、治疗范围
+    /// </summary>
+    /// <param name="characterAttack">攻击能力</param>
+    /// <param name="moveRange">移动逻辑范围</param>
+    /// <param name="mapSize">地图范围</param>
+    /// <param name="occupiedGrids">被占领的格子</param>
+    public void ShowAllRange(CharacterAttack characterAttack, List<Vector2Int> moveRange, Vector2Int mapSize, List<Vector2Int> occupiedGrids)
+    {
+        ClearRange(SignType.Move);
+        attackHealRange.Clear();
+        
+        ShowAttackRange(characterAttack, moveRange, mapSize, occupiedGrids);
+        ShowMoveRange(moveRange, occupiedGrids);
+    }
+    
 
-    public void ShowAttackRange(CharacterAttack characterAttack, List<Vector2Int> moveRange, Vector2Int mapSize)
+    private void ShowAttackRange(CharacterAttack characterAttack, List<Vector2Int> moveRange, Vector2Int mapSize, List<Vector2Int> occupiedGrids)
     {
         GetCoveredRange(characterAttack, moveRange, mapSize);
         List<Vector2Int> attackShowRange = new List<Vector2Int>();
+        
+        // 优先显示治疗范围
+        List<Vector2Int> healShowRange = new List<Vector2Int>();
+        for (int i = 0; i < logicCoverRange.Count; i++)
+        {
+            //Debug.Log("logicCoverRange[i].targetType: " + logicCoverRange[i].targetType);
+            if ((Constants.TargetType_Ally & logicCoverRange[i].targetType) == Constants.TargetType_Ally)
+            {
+                healShowRange.Add(logicCoverRange[i].gridPos);
+            }
+        }
+        
+        // 显示攻击范围
         for (int i = 0; i < logicCoverRange.Count; i++)
         {
             if ((Constants.TargetType_Foe & logicCoverRange[i].targetType) == Constants.TargetType_Foe)
             {
-                attackShowRange.Add(logicCoverRange[i].gridPos);
+                if (healShowRange.Contains(logicCoverRange[i].gridPos))
+                {
+                    if (!attackHealRange.Contains(logicCoverRange[i].gridPos))
+                    {
+                        attackHealRange.Add(logicCoverRange[i].gridPos);
+                    }
+                }
+                else
+                {
+                    attackShowRange.Add(logicCoverRange[i].gridPos);
+                }
             }
         }
-
+        
+        // 裁剪治疗范围
+        for (int i = 0; i < attackHealRange.Count; i++)
+        {
+            if (healShowRange.Contains(attackHealRange[i]))
+            {
+                healShowRange.Remove(attackHealRange[i]);
+            }
+        }
+        // 裁剪移动范围中被占据的格子
+        for (int i = 0; i < occupiedGrids.Count; i++)
+        {
+            if (moveRange.Contains(occupiedGrids[i]))
+            {
+                moveRange.Remove(occupiedGrids[i]);
+            }
+        }
+        // 裁剪可攻击治疗对于移动的范围
         for (int i = 0; i < moveRange.Count; i++)
         {
-            if (attackShowRange.Contains(moveRange[i]))
+            if (attackHealRange.Contains(moveRange[i]))
             {
-                attackShowRange.Remove(moveRange[i]);
+                attackHealRange.Remove(moveRange[i]);
             }
         }
-
-        for (int i = 0; i < attackShowRange.Count; i++)
+        
+        
+        // 显示
+        for (int i = 0; i < healShowRange.Count; i++)  
+        {
+            AddRange(SignType.Heal, healShowRange[i]);
+        }
+        for (int i = 0; i < attackShowRange.Count; i++)  
         {
             AddRange(SignType.Attack, attackShowRange[i]);
         }
+        
+        for (int i = 0; i < attackHealRange.Count; i++)  
+        {
+            AddRange(SignType.AttackHeal, attackHealRange[i]);
+        }
+
     }
 
     ///<summary>
@@ -77,16 +148,17 @@ public class UIManager : MonoBehaviour
     }
 
 
-    public void ShowMoveRange(List<DijkstraMoveInfo> logicMoveRange)
+    private void ShowMoveRange(List<Vector2Int> logicMoveRange, List<Vector2Int> occupiedGrids)
     {
-        ClearRange(SignType.Move);
-
         for (int i = 0; i < logicMoveRange.Count; i++)
         {
-            AddRange(SignType.Move, logicMoveRange[i].position);
+            if (occupiedGrids.Contains(logicMoveRange[i]))
+            {
+                continue;  // 被占领的格子不加入移动范围
+            }
+            AddRange(SignType.Move, logicMoveRange[i]);
         }
     }
-
 
 
     public void AddRange(SignType signType, Vector2Int gridPos)
@@ -109,6 +181,18 @@ public class UIManager : MonoBehaviour
             case SignType.AttackableMove:  // 可移动并攻击的范围
                 {
                     grid = Instantiate<GameObject>(Resources.Load<GameObject>("Prefabs/AttackableMoveRange"));
+                    if (!grid) return;
+                }
+                break;
+            case SignType.Heal:  // 治疗范围
+                {
+                    grid = Instantiate<GameObject>(Resources.Load<GameObject>("Prefabs/HealRange"));
+                    if (!grid) return;
+                }
+                break;
+            case SignType.AttackHeal:  // 攻击和治疗范围
+                {
+                    grid = Instantiate<GameObject>(Resources.Load<GameObject>("Prefabs/AttackHealRange"));
                     if (!grid) return;
                 }
                 break;
@@ -138,6 +222,16 @@ public class UIManager : MonoBehaviour
             case SignType.AttackableMove:  // 可移动并攻击的范围
                 {
                     attackableMoveRange.Add(grid);
+                }
+                break;
+            case SignType.AttackHeal:  // 攻击和治疗范围
+                {
+                    attackRange.Add(grid);
+                }
+                break;
+            case SignType.Heal:  // 治疗范围
+                {
+                    attackRange.Add(grid);
                 }
                 break;
         }
@@ -219,6 +313,7 @@ public class UIManager : MonoBehaviour
             }
             attackableMoveRange.Clear();
         }
+        attackHealRange.Clear();
     }
 
     public void ShowMsgDlg(List<MsgDlgButtonInfo> commandButtons)

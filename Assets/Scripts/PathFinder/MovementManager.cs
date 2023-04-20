@@ -45,6 +45,8 @@ public class MovementManager : MonoBehaviour
         GridPosition position = characterMove.GetComponent<GridPosition>();
         Vector2Int pos = position ? position.grid : Vector2Int.zero;
         _logicMoveRange = characterMove.GetDijkstraRange(pos);
+
+
       
     }
 

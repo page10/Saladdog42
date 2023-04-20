@@ -9,9 +9,10 @@ public struct CoveredRange
 {
     public byte targetType;
     public Vector2Int gridPos;
-    public void MixedType(byte target)
+    public static CoveredRange MixedType(CoveredRange o, byte target)
     {
-        this.targetType |= target;
+        byte b = (byte)(o.targetType | target);
+        return new CoveredRange(b, o.gridPos);
     }
 
     public CoveredRange(byte targetType, Vector2Int gridPos)

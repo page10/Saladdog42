@@ -52,9 +52,10 @@ public class GameManager : MonoBehaviour
     }
 
     public int waitTick = 0;
+
     private void FixedUpdate()
     {
-
+        
         switch (GameState.gameControlState)
         {
             //todo 先选人后选移动位置的那个流程 状态跳转 选武器漏写了
@@ -101,9 +102,11 @@ public class GameManager : MonoBehaviour
                             }
                             else // 还没移动
                             {
+                                //这里调用时候 最后一个参数传的是所有的自己单位 其实不太对 
                                 movementManager.GetMoveRange(selectedCharacter.gameObject.GetComponent<CharacterMovement>(), GetOccupiedGrids(currentCharacter), GetAllyGrids(currentCharacter));
-                                uiManager.ShowMoveRange(movementManager.LogicMoveRange);
-                                uiManager.ShowAttackRange(selectedCharacter.gameObject.GetComponent<CharacterAttack>(), MovementManager.GetV2IntFromDijkstraRange(movementManager.LogicMoveRange), mapGenerator.mapSize);  //拿到攻击范围V2Int List
+                                uiManager.ShowAllRange(selectedCharacter.gameObject.GetComponent<CharacterAttack>(),  MovementManager.GetV2IntFromDijkstraRange(movementManager.LogicMoveRange), mapGenerator.mapSize, GetAllyGrids(currentCharacter));
+                                //uiManager.ShowMoveRange(movementManager.LogicMoveRange);
+                                //uiManager.ShowAttackRange(selectedCharacter.gameObject.GetComponent<CharacterAttack>(), MovementManager.GetV2IntFromDijkstraRange(movementManager.LogicMoveRange), mapGenerator.mapSize);  //拿到攻击范围V2Int List
                                 ChangeGameState(GameControlState.ShowRange);
 
                                 waitTick = 10;
@@ -124,6 +127,9 @@ public class GameManager : MonoBehaviour
                 break;
             case GameControlState.ShowRange:
                 {
+                    // 在这个状态下 如果选中了敌方角色 就进入weaponSelect状态
+                    // 如果选中了我方角色 且自己有治疗武器 也进入weaponSelect状态 否则什么都不发生
+                    // 
                     if (Input.GetMouseButton(0) && waitTick <= 0)
                     {
                         Vector2Int currSelectGrid = movementManager.GetGridPosition(
@@ -307,7 +313,7 @@ public class GameManager : MonoBehaviour
                         Vector2Int currSelectGrid = movementManager.GetGridPosition(
                                 currentCamera.ScreenToWorldPoint(Input.mousePosition));
                         defender = GetCharacterInSelectedGrid(currSelectGrid);  
-                        Debug.Log("defender selected: " + defender.characterIndex);
+                        //Debug.Log("defender selected: " + defender.characterIndex);
                         // 其实是缺一个状态
                         // 在没有选中敌人的状态下 如果直接移动完成后点击attack 就没有选择敌人的步骤
                         // 应该是attack按钮绑定的事件中 状态跳转不对 
@@ -400,6 +406,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void ChangeGameState(GameControlState state)
     {
+        Debug.Log(state);
         if (state == GameControlState.SelectCharacter)  // 死亡时移除
         {
             selectedCharacter = null;  // 回合开始 把我方和敌方的选中角色都清空
@@ -821,7 +828,7 @@ public class GameManager : MonoBehaviour
             attack.AddWeapon(new WeaponObj(1, 1, 2, Constants.TargetType_Foe, WeaponType.DoubleAttack, "targetFoe", 20, "iconPath"));
             attack.weaponCurIndex = 0;
             //todo 治疗相关的战斗逻辑没写 是治疗武器的话 数值怎么计算 血量上限的计算
-            attack.AddWeapon(new WeaponObj(1, 1, 3, Constants.TargetType_Ally, WeaponType.NormalAttack, "targetAlly", 20, "iconPath"));
+            attack.AddWeapon(new WeaponObj(1, 1, 1, Constants.TargetType_Ally, WeaponType.NormalAttack, "targetAlly", 20, "iconPath"));
         }
 
         CharacterObject characterObject = character.GetComponent<CharacterObject>();
