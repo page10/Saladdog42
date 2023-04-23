@@ -193,12 +193,12 @@ public class GameManager : MonoBehaviour
                 }
                 break;
             case GameControlState.ShowAttackableArea:
-                {
-                    // 以选中的敌人为中心 按照我的武器最小最大范围 搜索出一个攻击范围
-                    // 找这个攻击范围 和我可移动范围的交集 
-                    // 显示交集内的格子 不显示其他格子
-
-                    List<Vector2Int> currAttackRange = selectedCharacter.gameObject.GetComponent<CharacterAttack>().GetAttackRange(currEnemy.GetComponent<GridPosition>().grid, mapGenerator.mapSize, Constants.TargetType_Foe);
+            {
+                // 以选中的敌人为中心 按照我的武器最小最大范围 搜索出一个攻击范围
+                // 找这个攻击范围 和我可移动范围的交集 
+                // 显示交集内的格子 不显示其他格子
+                List<Vector2Int> currAttackRange = selectedCharacter.gameObject.GetComponent<CharacterAttack>()
+                    .GetAttackRange(currEnemy.GetComponent<GridPosition>().grid, mapGenerator.mapSize, Constants.TargetType_Foe);
                 List<DijkstraMoveInfo> currMoveRange = movementManager.LogicMoveRange;
 
                 List<Vector2Int> attackableArea = new List<Vector2Int>();
@@ -213,47 +213,49 @@ public class GameManager : MonoBehaviour
                         //Debug.Log("gridPos: " + gridPos);
                     }
                 }
+
                 if (attackableArea.Count > 0)
                 {
                     uiManager.ClearAllRange();
                     uiManager.ShowAttackableMoveRange(attackableArea);
                 }
 
-                if (Input.GetMouseButton(0) && waitTick <= 0) 
+                if (Input.GetMouseButton(0) && waitTick <= 0)
+                {
+                    // 之后要做一个状态链
+                    // 用来知道状态之间的变化关系
+                    // 是个数组 从0开始 中间可能改写
+                    Vector2Int currSelectGrid = movementManager.GetGridPosition(
+                        currentCamera.ScreenToWorldPoint(Input.mousePosition));
+                    if (attackableArea.Contains(currSelectGrid))
                     {
-                        // 之后要做一个状态链
-                        // 用来知道状态之间的变化关系
-                        // 是个数组 从0开始 中间可能改写
-                        Vector2Int currSelectGrid = movementManager.GetGridPosition(
-                                currentCamera.ScreenToWorldPoint(Input.mousePosition));
-                        if (attackableArea.Contains(currSelectGrid))
+                        List<Vector2Int> moveGrids = movementManager.GetMovePath(currSelectGrid);
+                        if (moveGrids.Count > 0)
                         {
-                            List<Vector2Int> moveGrids = movementManager.GetMovePath(currSelectGrid);
-                            if (moveGrids.Count > 0)
+                            uiManager.ClearAllRange();
+                            for (int i = 0; i < moveGrids.Count; i++)
                             {
-                                uiManager.ClearAllRange();
-                                for (int i = 0; i < moveGrids.Count; i++)
-                                {
-                                    uiManager.AddRange(SignType.Move,moveGrids[i]);
-                                }
+                                uiManager.AddRange(SignType.Move, moveGrids[i]);
+                            }
 
-                                AnimatorController animatorController = selectedCharacter.gameObject.GetComponent<AnimatorController>();
-                                if (animatorController != null)
-                                {
-                                    //lastPosition = currSelectGrid;  // 把这个位置更新了
-                                    animatorController.StartMove(moveGrids);
-                                    ChangeGameState(GameControlState.CharacterMoving);
-                                    haveSelectedEnemy = true;  // 我之后不能再选敌人
-                                    waitTick = 10;
-                                }
-                            }
-                            else
+                            AnimatorController animatorController =
+                                selectedCharacter.gameObject.GetComponent<AnimatorController>();
+                            if (animatorController != null)
                             {
-                                //留个以后错误提示的位置
+                                //lastPosition = currSelectGrid;  // 把这个位置更新了
+                                animatorController.StartMove(moveGrids);
+                                ChangeGameState(GameControlState.CharacterMoving);
+                                haveSelectedEnemy = true; // 我之后不能再选敌人
+                                waitTick = 10;
                             }
+                        }
+                        else
+                        {
+                            //留个以后错误提示的位置
                         }
                     }
                 }
+            }
                 break;
             case GameControlState.CharacterMoving:
                 {
@@ -290,7 +292,6 @@ public class GameManager : MonoBehaviour
                 break;
             case GameControlState.WeaponSelect:
                 {
-                    //todo 在这里调武器选择UI界面
                     // 还没做 先直接跳转攻击阶段了
                     // 之后这里要根据选中的是友方还是敌方 确认不同的武器
 
@@ -306,38 +307,70 @@ public class GameManager : MonoBehaviour
                 break;
             case GameControlState.SelectAttackObject:
                 {
-                    // todo 根据选定的武器拿到攻击范围
-                    // SetUIPointerIndex();  // 这个位置可能之后再改
+                    // todo 根据选定的武器拿到攻击范围 限定一下攻击范围 现在范围拿到了 但还没有限定
+                    // todo 现在的友方武器也可以打敌人 看一下怎么回事
+                    
+                    CharacterAttack characterAttack = selectedCharacter.gameObject.GetComponent<CharacterAttack>();
+
+                    List<Vector2Int> currAttackRange = characterAttack.GetAttackRange(
+                        selectedCharacter.gPos.grid, mapGenerator.mapSize,
+                        characterAttack.Weapons[characterAttack.weaponCurIndex].target
+                    );
+                    
+                    if (currAttackRange.Count > 0)
+                    {
+                        uiManager.ClearAllRange();
+                        uiManager.ShowAttackableMoveRange(currAttackRange);
+                    }
+
+
+                    
                     if (Input.GetMouseButton(0) && waitTick <= 0)
                     {
                         Vector2Int currSelectGrid = movementManager.GetGridPosition(
                                 currentCamera.ScreenToWorldPoint(Input.mousePosition));
-                        defender = GetCharacterInSelectedGrid(currSelectGrid);  
-                        //Debug.Log("defender selected: " + defender.characterIndex);
-                        // 其实是缺一个状态
-                        // 在没有选中敌人的状态下 如果直接移动完成后点击attack 就没有选择敌人的步骤
-                        // 应该是attack按钮绑定的事件中 状态跳转不对 
-                        // 按理说 应该跳转到SelectAttackObject 然后按照这里面的逻辑往下走
+                        
+                        if (currAttackRange.Contains(currSelectGrid))
+                        {
+                            defender = GetCharacterInSelectedGrid(currSelectGrid);
+                            // 这里是不是有必要根据当前持有的武器限定可点击对象呢？目前限定了 但是感觉有点僵硬
+                            if (defender.characterIndex == Constants.nullCharacterIndex)  // 没选中任何角色
+                            {
 
-                        if (defender.characterIndex == Constants.nullCharacterIndex)  // 没选中任何角色
-                        {
-                            //ChangeGameState(GameControlState.CharacterMoveDone);  
-                            // 在「移动后攻击」的语义里 这个跳转不对 会导致什么都不干直接结束回合了 应该什么都不发生 播放个特效
+                            }
+                            else if (defender.playerIndex == attacker.playerIndex &&
+                                     (characterAttack.Weapons[characterAttack.weaponCurIndex].target |
+                                      Constants.TargetType_Ally) == Constants.TargetType_Ally) // 选中了我方角色
+                            {
+                                
+                                ChangeGameState(GameControlState.ConfirmWeapon); // 确认使用的攻击武器
+                            }
+                            else if (defender.playerIndex != attacker.playerIndex &&
+                                     (characterAttack.Weapons[characterAttack.weaponCurIndex].target |
+                                      Constants.TargetType_Foe) == Constants.TargetType_Foe) // 选中了某个敌方角色
+                            {
+                                ChangeGameState(GameControlState.ConfirmWeapon);  // 确认使用的攻击武器
+                            }
+                        
                         }
-                        else if (defender.characterIndex == 0)  // 选中了我方角色
+                        else
                         {
-                            ChangeGameState(GameControlState.ConfirmWeapon);  // 确认使用的攻击武器
+                            //留个以后错误提示的位置
                         }
-                        else  // 选中了某个敌方角色
-                        {
-                            ChangeGameState(GameControlState.ConfirmWeapon);  // 确认使用的攻击武器
-                        }
+                        
+
                     }                    
                 }
                 break;
             case GameControlState.ConfirmWeapon:
                 {
-                    // 还没写确认武器 直接跳转到攻击阶段
+                    //todo 这里ConfirmWeapon这个状态也就是攻击预览显示1状态 补全逻辑 0423
+                    
+                    
+                    
+                    
+                    
+                    
                     ChangeGameState(GameControlState.Attack);
                 }
                 break;

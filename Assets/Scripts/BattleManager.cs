@@ -148,11 +148,16 @@ public class BattleManager : MonoBehaviour
     /// </summary>
     private BattleAnimData GenerateBattleAnimEvent()
     {
-        Vector2Int faceDirection = (battleInputInfo.defender.gPos.grid - battleInputInfo.attacker.gPos.grid) /
-                                   Mathf.RoundToInt(Mathf.Abs(battleInputInfo.defender.gPos.grid.x - battleInputInfo.attacker.gPos.grid.x)
-                                                    + Mathf.Abs(battleInputInfo.defender.gPos.grid.y - battleInputInfo.attacker.gPos.grid.y));
-        BattleAnimData changeDirection = new BattleAnimData(new ChangeFaceDirection(battleInputInfo.attacker,faceDirection));
-        BattleAnimData lastData = new BattleAnimData(new ChangeFaceDirection(battleInputInfo.defender, -faceDirection));
+        BattleAnimData changeDirection = new BattleAnimData(new Wait(0.1f));
+        BattleAnimData lastData = new BattleAnimData(new Wait(0.1f));
+        if (battleInputInfo.defender.gPos.grid != battleInputInfo.attacker.gPos.grid)
+        {
+            Vector2Int faceDirection = (battleInputInfo.defender.gPos.grid - battleInputInfo.attacker.gPos.grid) /
+                                       Mathf.RoundToInt(Mathf.Abs(battleInputInfo.defender.gPos.grid.x - battleInputInfo.attacker.gPos.grid.x)
+                                                        + Mathf.Abs(battleInputInfo.defender.gPos.grid.y - battleInputInfo.attacker.gPos.grid.y));
+            changeDirection = new BattleAnimData(new ChangeFaceDirection(battleInputInfo.attacker,faceDirection));
+            lastData = new BattleAnimData(new ChangeFaceDirection(battleInputInfo.defender, -faceDirection));
+        }
         changeDirection.NextEventsDatas.Add(lastData);
 
         for (int i = 0; i < SingleBattleInfo.Count; i++)
