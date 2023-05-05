@@ -9,6 +9,7 @@ using System;
 [Serializable]
 public struct CharacterStatus
 {
+    //todo 去掉所有的命中和暴击 暴击改成计数制
     public int attack;
     public int mAttack;
     public int defense;

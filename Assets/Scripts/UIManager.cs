@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Structs;
 using UnityEngine;
 
 public class UIManager : MonoBehaviour
@@ -17,6 +18,9 @@ public class UIManager : MonoBehaviour
     private MsgDlg msgDlg;
     private Transform msgCanvasTransform; 
     private string msgdlgPath = "Prefabs/UI/Msgdlg";
+
+    private BattlePreviewPanel battlePreviewPanel;
+    private string battlePreviewPanelPath = "Prefabs/UI/BattlePreviewPanel";
 
     private void Awake() {
        msgCanvasTransform = GameObject.Find("Canvas").transform;
@@ -339,6 +343,40 @@ public class UIManager : MonoBehaviour
     public void HideMsgDlg()
     {
         msgDlg.gameObject.SetActive(false);
+    }
+    
+    public void ShowBattlePreviewPanel(List<BattleResInfo> previewResult)
+    {
+        string previewShowText = "";
+        foreach (BattleResInfo battleRes in previewResult)
+        {
+            previewShowText += (battleRes.attacker + "攻击" + battleRes.defender + "造成" + battleRes.damage + "点伤害" + "\n");
+        }
+        
+        if (!battlePreviewPanel)
+        {
+            GameObject battlePreviewPanelObject = Instantiate<GameObject>(Resources.Load<GameObject>(battlePreviewPanelPath));
+            battlePreviewPanelObject.transform.SetParent(msgCanvasTransform);  // transform set parent 了之后 gameobject也就setParent了 
+            battlePreviewPanelObject.transform.localPosition = new Vector3(-225, -200, 0);  // set一下localPosition 
+            battlePreviewPanelObject.transform.localScale = Vector3.one;
+            battlePreviewPanel = battlePreviewPanelObject.GetComponent<BattlePreviewPanel>();
+            battlePreviewPanelObject.SetActive(true);
+            battlePreviewPanel.SetPreviewText(previewShowText);
+        }
+        else
+        {
+            battlePreviewPanel.gameObject.SetActive(true);
+            battlePreviewPanel.SetPreviewText(previewShowText);
+        }
+    }
+    
+    public void HideBattlePreviewPanel()
+    {
+        if (battlePreviewPanel)
+        {
+            battlePreviewPanel.gameObject.SetActive(false);
+        }
+        
     }
 
 

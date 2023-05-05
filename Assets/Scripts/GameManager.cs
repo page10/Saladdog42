@@ -103,8 +103,12 @@ public class GameManager : MonoBehaviour
                             else // 还没移动
                             {
                                 //这里调用时候 最后一个参数传的是所有的自己单位 其实不太对 
-                                movementManager.GetMoveRange(selectedCharacter.gameObject.GetComponent<CharacterMovement>(), GetOccupiedGrids(currentCharacter), GetAllyGrids(currentCharacter));
-                                uiManager.ShowAllRange(selectedCharacter.gameObject.GetComponent<CharacterAttack>(),  MovementManager.GetV2IntFromDijkstraRange(movementManager.LogicMoveRange), mapGenerator.mapSize, GetAllyGrids(currentCharacter));
+                                movementManager.GetMoveRange(
+                                    selectedCharacter.gameObject.GetComponent<CharacterMovement>(),
+                                    GetOccupiedGrids(currentCharacter), GetAllyGrids(currentCharacter));
+                                uiManager.ShowAllRange(selectedCharacter.gameObject.GetComponent<CharacterAttack>(),
+                                    MovementManager.GetV2IntFromDijkstraRange(movementManager.LogicMoveRange),
+                                    mapGenerator.mapSize, GetAllyGrids(currentCharacter));
                                 //uiManager.ShowMoveRange(movementManager.LogicMoveRange);
                                 //uiManager.ShowAttackRange(selectedCharacter.gameObject.GetComponent<CharacterAttack>(), MovementManager.GetV2IntFromDijkstraRange(movementManager.LogicMoveRange), mapGenerator.mapSize);  //拿到攻击范围V2Int List
                                 ChangeGameState(GameControlState.ShowRange);
@@ -307,9 +311,6 @@ public class GameManager : MonoBehaviour
                 break;
             case GameControlState.SelectAttackObject:
                 {
-                    // todo 根据选定的武器拿到攻击范围 限定一下攻击范围 现在范围拿到了 但还没有限定
-                    // todo 现在的友方武器也可以打敌人 看一下怎么回事
-                    
                     CharacterAttack characterAttack = selectedCharacter.gameObject.GetComponent<CharacterAttack>();
 
                     List<Vector2Int> currAttackRange = characterAttack.GetAttackRange(
@@ -342,14 +343,13 @@ public class GameManager : MonoBehaviour
                                      (characterAttack.Weapons[characterAttack.weaponCurIndex].target |
                                       Constants.TargetType_Ally) == Constants.TargetType_Ally) // 选中了我方角色
                             {
-                                
-                                ChangeGameState(GameControlState.ConfirmWeapon); // 确认使用的攻击武器
+                                CalBattlePreview();
                             }
                             else if (defender.playerIndex != attacker.playerIndex &&
                                      (characterAttack.Weapons[characterAttack.weaponCurIndex].target |
                                       Constants.TargetType_Foe) == Constants.TargetType_Foe) // 选中了某个敌方角色
                             {
-                                ChangeGameState(GameControlState.ConfirmWeapon);  // 确认使用的攻击武器
+                                CalBattlePreview();
                             }
                         
                         }
@@ -364,14 +364,18 @@ public class GameManager : MonoBehaviour
                 break;
             case GameControlState.ConfirmWeapon:
                 {
-                    //todo 这里ConfirmWeapon这个状态也就是攻击预览显示1状态 补全逻辑 0423
+                    //UI 就是对应显示两边图片 攻击 会不会打死
+
+                    // 这里和ShowCommandMenu是类似的
+                    //todo 在这里要根据选择的武器刷新攻击范围 还要刷新攻击预览
+                    // 刷新攻击预览应该做在按钮里吗
+                    // 切武器刷新攻击其实是重新切一遍状态了
                     
-                    
-                    
-                    
-                    
-                    
-                    ChangeGameState(GameControlState.Attack);
+                    RefeshAttackRange();  // 刷新攻击范围 
+
+
+
+                    //ChangeGameState(GameControlState.Attack);
                 }
                 break;
             case GameControlState.Attack:
@@ -518,10 +522,58 @@ public class GameManager : MonoBehaviour
         return currentMsgDlgButtonInfos;
     }
     
+    /// <summary>
+    /// 战斗预览菜单页面 选择武器部分
+    /// </summary>
+    /// <returns></returns>
+    private List<MsgDlgButtonInfo> GetWeaponBattlePreviewInfos(CharacterAttack characterAttack)
+    {
+        // todo 筛选攻击范围内的我方和敌方 如果有才对应显示武器按钮
+        List<MsgDlgButtonInfo> currentMsgDlgButtonInfos = new List<MsgDlgButtonInfo>();
+        for (int i = 0; i < characterAttack.Weapons.Count; i++)
+        {
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo(characterAttack.Weapons[i].weaponName, WeaponPreviewCommand,
+                new object[] { i }));
+        }
+
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("Cancel", CancelCommand, Array.Empty<object>()));
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("AttackConfirm", AttackConfirmCommand, Array.Empty<object>()));
+        return currentMsgDlgButtonInfos;
+    }
+    
+    /// <summary>
+    /// 用于选择武器界面的武器选择按钮
+    /// </summary>
+    /// <param name="args"></param>
     private void WeaponCommand(params object[] args)
     {
         selectedCharacter.attack.weaponCurIndex = (int)args[0];
         uiManager.HideMsgDlg();
+    }
+    
+    /// <summary>
+    /// 用于攻击预览界面的武器选择按钮
+    /// </summary>
+    /// <param name="args"></param>
+    private void WeaponPreviewCommand(params object[] args)
+    {
+        selectedCharacter.attack.weaponCurIndex = (int)args[0];
+        // todo 这里要重算一遍攻击 先这么写不一定对
+        //uiManager.HideMsgDlg();
+        CalBattlePreview();
+    }
+    
+    /// <summary>
+    /// 点这个按钮切到攻击执行
+    /// </summary>
+    private void AttackConfirmCommand(object[] args)
+    {
+        uiManager.HideMsgDlg();
+        uiManager.ClearAllRange();
+        uiManager.HideBattlePreviewPanel();
+        // 移动完成之后的选择攻击目标
+        GameState.gameControlState = GameControlState.Attack;
+
     }
 
     /// <summary>
@@ -529,7 +581,6 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void Attack()
     {
-        //todo: 还没写武器选择 这里的attackerWeapon先写成第一个吧
         BattleInputInfo battleInputInfo = new BattleInputInfo();
         battleInputInfo.attacker = characters[attacker.playerIndex][attacker.characterIndex];
         battleInputInfo.defender = characters[defender.playerIndex][defender.characterIndex];
@@ -627,6 +678,8 @@ public class GameManager : MonoBehaviour
             gPos.SynchronizeGridPosition();
         }
         uiManager.HideMsgDlg();
+        uiManager.HideBattlePreviewPanel();
+        uiManager.ClearAllRange();
         ChangeGameState(GameControlState.SelectCharacter);
     }
 
@@ -866,6 +919,65 @@ public class GameManager : MonoBehaviour
 
         CharacterObject characterObject = character.GetComponent<CharacterObject>();
         characters[playerIndex].Add(characterObject);
+    }
+
+    /// <summary>
+    /// 切武器时候刷新攻击范围
+    /// </summary>
+    private void RefeshAttackRange()
+    {
+        CharacterAttack characterAttack = selectedCharacter.gameObject.GetComponent<CharacterAttack>();
+
+        List<Vector2Int> currAttackRange = characterAttack.GetAttackRange(
+            selectedCharacter.gPos.grid, mapGenerator.mapSize,
+            characterAttack.Weapons[characterAttack.weaponCurIndex].target
+        );
+                    
+        if (currAttackRange.Count > 0)
+        {
+            uiManager.ClearAllRange();
+            uiManager.ShowAttackableMoveRange(currAttackRange);
+        }
+    }
+
+    /// <summary>
+    /// 计算战斗预览 用于显示
+    /// </summary>
+    private void CalBattlePreview()
+    {
+        BattleInputInfo battleInputInfo = new BattleInputInfo();
+        battleInputInfo.attacker = characters[attacker.playerIndex][attacker.characterIndex];
+        battleInputInfo.defender = characters[defender.playerIndex][defender.characterIndex];
+        battleInputInfo.attackerWeapon = characters[attacker.playerIndex][attacker.characterIndex].attack.Weapons[0];  
+        battleInputInfo.defenderWeapon = characters[defender.playerIndex][defender.characterIndex].attack.Weapons[0];
+        battleInputInfo.attackerPos = new Vector2Int(
+            characters[attacker.playerIndex][attacker.characterIndex].gPos.grid.x,
+            characters[attacker.playerIndex][attacker.characterIndex].gPos.grid.y);
+        battleInputInfo.defenderPos = new Vector2Int(
+            characters[defender.playerIndex][defender.characterIndex].gPos.grid.x,
+            characters[defender.playerIndex][defender.characterIndex].gPos.grid.y);
+        battleInputInfo.attackerTerrainStatus = mapGenerator.Map
+        [
+            battleInputInfo.attackerPos.x,
+            battleInputInfo.attackerPos.y
+        ].percentageModifier;
+        battleInputInfo.defenderTerrainStatus = mapGenerator.Map
+        [
+            battleInputInfo.defenderPos.x,
+            battleInputInfo.defenderPos.y
+        ].percentageModifier;
+        battleInputInfo.isSameSide = attacker.playerIndex == defender.playerIndex;
+        
+        battleManager.StartBattle(battleInputInfo);
+        battleManager.StartBattle(battleInputInfo);  // todo 这里 和 下面有一段一样的丑陋代码 一会提出来
+                    
+                                
+        msgDlgButtonInfos = GetWeaponBattlePreviewInfos(selectedCharacter.attack);  // 武器选择功能
+        uiManager.ShowMsgDlg(msgDlgButtonInfos);
+                                
+        uiManager.ShowBattlePreviewPanel(battleManager.SingleBattleInfo);  // 攻击预览
+        ChangeGameState(GameControlState.ConfirmWeapon); // 确认使用的攻击武器
+        
     }
 
 
