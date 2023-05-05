@@ -970,8 +970,7 @@ public class GameManager : MonoBehaviour
         
         battleManager.StartBattle(battleInputInfo);
         battleManager.StartBattle(battleInputInfo);  // todo 这里 和 下面有一段一样的丑陋代码 一会提出来
-                    
-                                
+
         msgDlgButtonInfos = GetWeaponBattlePreviewInfos(selectedCharacter.attack);  // 武器选择功能
         uiManager.ShowMsgDlg(msgDlgButtonInfos);
                                 

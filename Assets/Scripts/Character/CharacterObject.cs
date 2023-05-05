@@ -11,6 +11,10 @@ public class CharacterObject : MonoBehaviour
     public AnimatorController animator;
     public CharacterAttack attack;
     public CharacterStatus Status = new CharacterStatus();
+
+    //todo 角色的名字，创建的时候可以随机生成一个
+    public string characterName = "";
+    
     public int hp;
     public bool CanBeDestroyed { get; set; } = false;
     

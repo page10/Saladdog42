@@ -30,7 +30,7 @@ public class UIManager : MonoBehaviour
     private void GetCoveredRange(CharacterAttack characterAttack, List<Vector2Int> moveRange, Vector2Int mapSize)
     {
         logicCoverRange.Clear();
-        GridPosition currGridPos = characterAttack.gameObject.GetComponent<GridPosition>();
+        //GridPosition currGridPos = characterAttack.gameObject.GetComponent<GridPosition>();
         for (int i = 0; i < moveRange.Count; i++)
         {
             List<CoveredRange> currRange = characterAttack.GetWeaponRange(moveRange[i], mapSize);

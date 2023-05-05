@@ -8,6 +8,7 @@ using UnityEngine;
 public class MsgDlg : MonoBehaviour
 {
     private MsgDlgBottom msgDlgBottom;
+    private RectTransform msgDlgBottomTransform;
     private MsgdlgBodiesContainer msgdlgBodiesContainer;  // 存放bodies的container 解决一下显示层级问题
     private string bodyPrefabPath = "Prefabs/UI/MsgDlgBody";
     private List<MsgDlgBody> bodies = new List<MsgDlgBody>();  // 存放按钮body的list
@@ -17,6 +18,8 @@ public class MsgDlg : MonoBehaviour
     private void Awake() {
         selectSign = GetComponentInChildren<SelectSign>();
         msgdlgBodiesContainer = GetComponentInChildren<MsgdlgBodiesContainer>();
+        msgDlgBottom = gameObject.GetComponentInChildren<MsgDlgBottom>();  // 拿到小孩里的msgDlgBottom
+        msgDlgBottomTransform = msgDlgBottom ? msgDlgBottom.gameObject.GetComponent<RectTransform>() : null;
     }
 
     /// <summary>
@@ -37,8 +40,8 @@ public class MsgDlg : MonoBehaviour
         {
             bodies[i].SetMbutton(commandButtons[i], i, BodyOnSelected);
         }
-        msgDlgBottom = gameObject.GetComponentInChildren<MsgDlgBottom>();  // 拿到小孩里的msgDlgBottom
-        msgDlgBottom.gameObject.GetComponent<RectTransform>().localPosition = new Vector2(0, -(commandButtons.Count + 1) * MsgDlgBody.bodyHeight);
+        if (msgDlgBottomTransform)
+            msgDlgBottomTransform.localPosition = new Vector2(0, -(commandButtons.Count + 1) * MsgDlgBody.bodyHeight);
     }
 
     

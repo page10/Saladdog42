@@ -284,8 +284,6 @@ public class BattleManager : MonoBehaviour
         bool isAttacker = attacker.isAttacker;
 
         int hit = thisAttackStatus.hit - thisDefendStatus.dodge;
-        Debug.Log("hit:" + thisAttackStatus.hit);
-        Debug.Log("dodge:" + thisAttackStatus.dodge);
         int crit = thisAttackStatus.crit;
         int damage = thisAttackStatus.attack - thisDefendStatus.defense;
         bool isCrit = false;

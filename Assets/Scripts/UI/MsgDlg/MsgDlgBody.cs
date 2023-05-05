@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -18,18 +19,24 @@ public class MsgDlgBody : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
     private MsgdlgBodyIndex OnSelected;
     private CommandEvent buttonCommand;
 
+    private Text commandText;
+
+    private void Awake()
+    {
+        commandText = GetComponentInChildren<CommandText>().GetComponent<Text>();
+    }
+
     /// <summary>
     /// 设置命令按钮的命令文字
     /// </summary>
     public void SetMbutton(MsgDlgButtonInfo button, int index, MsgdlgBodyIndex onSelected)
     {
         m_button = button;
-        CommandText commandText = GetComponentInChildren<CommandText>();
-        commandText.GetComponent<Text>().text = button.commandText;
+        commandText.text = button.commandText;
         bodyIndex = index;
         OnSelected = onSelected;
         buttonCommand = button.commandEvent;
-        GetComponent<RectTransform>().localPosition = new Vector2(0, -(index + 1) * bodyHeight);
+        transform.localPosition = new Vector2(0, -(index + 1) * bodyHeight);
     }
 
     /// <summary>
