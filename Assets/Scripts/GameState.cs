@@ -11,7 +11,7 @@ public enum GameControlState
     /// 如果可移动 则展开移动和攻击范围 并进入「ShowRange」
     /// 不可移动状态下 判定是否可攻击
     /// 如果可攻击 进入攻击武器选择状态「WeaponSelect」
-    /// 如果不可攻击 则进入行动完成「CharacterActionDone」状态
+    /// 如果不可攻击 则什么事情都不发生
     /// （可移动不可攻击的判定在「ShowRange」里面处理）
     /// </summary>
     SelectCharacter,  // select one focused character
@@ -32,7 +32,7 @@ public enum GameControlState
     /// 确认攻击则跳转
     /// </summary>
     ConfirmWeapon,
-    Attack,
+    // Attack,
     PlayBattleAnimation,
     CharacterActionDone, 
     EnemyTurnStart,

@@ -71,13 +71,15 @@ public class GameManager : MonoBehaviour
                         return;
                     }
                     uiManager.ClearAllRange();
-                    //重置可移动角色的移动状态    
+                    //重置可移动角色的移动状态 和可攻击状态   
                     //这里直接把所有角色的可移动状态重置吧 反正玩家也操作不了敌人队伍
                     for (int i = 0; i < playerCount; i++)
                     {
                         for (int j = 0; j < characters[i].Count; j++)
                         {
                             characters[i][j].animator.NewTurn();
+                            characters[i][j].hasAttacked = false;
+                            characters[i][j].hasMoved = false;
                         }
                     }
 
@@ -105,7 +107,7 @@ public class GameManager : MonoBehaviour
                             // 如果可移动 则展开移动和攻击范围 并进入「ShowRange」
                             // 不可移动状态下 判定是否可攻击 
                             // 如果可攻击 进入攻击武器选择状态「WeaponSelect」（在这个状态里去展开攻击范围 现在先不展开）
-                            // 如果不可攻击 则进入行动完成「CharacterActionDone」状态
+                            // 如果不可攻击 什么事情也不发生
                             // （可移动不可攻击的判定在「ShowRange」里面处理）
                             
                             // 把攻击者设置为我选中的这个人
@@ -114,12 +116,12 @@ public class GameManager : MonoBehaviour
                             selectedCharacter = characters[currentCharacter.playerIndex][currentCharacter.characterIndex];
                             
                             // 确认一下是不是在播动画 如果没在播动画才有事情发生
-                            if (selectedCharacter.animator.IsMoveFinished(false))  // 走路的动画还在播
-                            {
-                                //Debug.Log("test");
-                            }
-                            else // 没在播走路动画
-                            {
+                            // if (selectedCharacter.animator.IsMoveFinished(false))  // 走路的动画还在播
+                            // {
+                            //     //Debug.Log("test");
+                            // }
+                            // else // 没在播走路动画
+                            // {
                                 
                                 if (!selectedCharacter.hasMoved)  // 还没移动
                                 {
@@ -134,10 +136,11 @@ public class GameManager : MonoBehaviour
 
                                     waitTick = 10;
                                 }
-                                else if (selectedCharacter.hasMoved && !selectedCharacter.hasAttacked)  // 没攻击 移动过了
+                                else if (!selectedCharacter.hasAttacked)  // 没攻击 移动过了
                                 {
                                     // 进入攻击武器选择状态「WeaponSelect」
-                                    GameState.gameControlState = GameControlState.WeaponSelect;
+                                    ChangeGameState(GameControlState.WeaponSelect);
+                                    waitTick = 10;
                                     
                                 }
 
@@ -147,7 +150,7 @@ public class GameManager : MonoBehaviour
                                 }
                                 //这里调用时候 最后一个参数传的是所有的自己单位 其实不太对 
 
-                            }
+                            //}
 
                         }
                         else if (currentCharacter.playerIndex == Constants.nullPlayerIndex)  // 选到了空格子
@@ -187,8 +190,8 @@ public class GameManager : MonoBehaviour
                             //选中了敌方角色
                             Debug.Log("selected enemy characters");
                             SelectedCharacterInfo currentEnemy = GetCharacterInSelectedGrid(currSelectGrid);
-                            defender = currentEnemy;  
-                            currEnemy = characters[currentCharacter.playerIndex][currentCharacter.characterIndex].gameObject;
+                            defender = currentEnemy;  // 之后计算伤害的也要用这个敌人
+                            currEnemy = characters[currentCharacter.playerIndex][currentCharacter.characterIndex].gameObject;  
                             ChangeGameState(GameControlState.ShowAttackableArea);
                         }
                         else
@@ -219,6 +222,7 @@ public class GameManager : MonoBehaviour
                                     lastPosition = selectedCharacter.gPos.grid;  // 把这个位置更新了
                                     animatorController.StartMove(moveGrids);
                                     selectedCharacter.hasMoved = true;
+                                    selectedCharacter.animator.FinishMovement();  // 改一下颜色
                                     ChangeGameState(GameControlState.CharacterMoving);
                                     waitTick = 10;
                                 }
@@ -319,7 +323,7 @@ public class GameManager : MonoBehaviour
                         }
                         else  // 我之前已经选过敌人了
                         {
-                            ChangeGameState(GameControlState.ConfirmWeapon);
+                            ChangeGameState(GameControlState.WeaponSelect);
                         }
                     }
                 }
@@ -348,10 +352,14 @@ public class GameManager : MonoBehaviour
                 // break;
             case GameControlState.WeaponSelect:
                 {
+                    // 进入这个状态的时候 应该都是 可攻击不可移动的状态了
+                    // 在这个状态选择要使用的武器
+                    // 并且根据选择的武器 展开攻击范围
+                    // 菜单中仍然包含cancel选项
                     
-                    // 展开武器选择菜单
+                    // 这部分逻辑还是留着吧
                     msgDlgButtonInfos = GetWeaponMsgDlgButtonInfos(selectedCharacter.attack);
-
+                    
                     uiManager.ShowMsgDlg(msgDlgButtonInfos);
                     
                     CharacterAttack characterAttack = selectedCharacter.gameObject.GetComponent<CharacterAttack>();
@@ -366,7 +374,12 @@ public class GameManager : MonoBehaviour
                         uiManager.ClearAllRange();
                         uiManager.ShowAttackableMoveRange(currAttackRange);
                     }
-
+                    
+                    // 如果之前有选过人 直接跳下一个阶段
+                    if (haveSelectedEnemy)
+                    {
+                        CalBattlePreview();
+                    }
 
                     
                     if (Input.GetMouseButton(0) && waitTick <= 0)
@@ -412,19 +425,19 @@ public class GameManager : MonoBehaviour
 
                 }
                 break;
-            case GameControlState.Attack:
-                {
-                    // todo 总觉得这个状态也可以干掉呢 因为也就是做完一件事就跳转了 不存在循环呢
-
-                    haveSelectedEnemy = false;  // 这个现在应该也要改掉了
-                    Attack();
-                }
-                break;
+            // case GameControlState.Attack:
+            //     {
+            //         haveSelectedEnemy = false;  // 这个现在应该也要改掉了
+            //         Attack();
+            //     }
+            //     break;
             case GameControlState.PlayBattleAnimation:
                 {
+                    haveSelectedEnemy = false;  // todo 这个现在应该也要改掉了
                     if (battleManager.IsPlayingAnimation == false)
                     {
                         ChangeGameState(GameControlState.CharacterActionDone);
+                        selectedCharacter.animator.FinishAction();
                     }
                 }
                 break;
@@ -432,7 +445,6 @@ public class GameManager : MonoBehaviour
                 {
                     
                     uiManager.ClearAllRange();
-                    selectedCharacter.animator.FinishAction();
                     bool haveAllFinished = true;
                     for (int i = 0; i < characters[0].Count; i++)
                     {
@@ -607,7 +619,9 @@ public class GameManager : MonoBehaviour
         uiManager.ClearAllRange();
         uiManager.HideBattlePreviewPanel();
         // 移动完成之后的选择攻击目标
-        GameState.gameControlState = GameControlState.Attack;
+        //GameState.gameControlState = GameControlState.Attack;
+        Attack();
+        selectedCharacter.hasAttacked = true;
 
     }
 
@@ -660,6 +674,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void HealCommand(object[] args)
     {
+        selectedCharacter.animator.FinishAction();
         ChangeGameState(GameControlState.CharacterActionDone);
         uiManager.HideMsgDlg();
     }
@@ -670,6 +685,7 @@ public class GameManager : MonoBehaviour
     private void ExchangeCommand(object[] args)
     {
         ChangeGameState(GameControlState.CharacterActionDone);
+        selectedCharacter.animator.FinishAction();
         uiManager.HideMsgDlg();
     }
 
@@ -679,6 +695,7 @@ public class GameManager : MonoBehaviour
     private void BackupCommand(object[] args)
     {
         ChangeGameState(GameControlState.CharacterActionDone);
+        selectedCharacter.animator.FinishAction();
         uiManager.HideMsgDlg();
     }
 
@@ -688,6 +705,7 @@ public class GameManager : MonoBehaviour
     private void InventoryCommand(object[] args)
     {
         ChangeGameState(GameControlState.CharacterActionDone);
+        selectedCharacter.animator.FinishAction();
         uiManager.HideMsgDlg();
     }
 
@@ -697,6 +715,7 @@ public class GameManager : MonoBehaviour
     private void WaitCommand(object[] args)
     {
         ChangeGameState(GameControlState.CharacterActionDone);
+        // 这里不用播结束动画（变黑色那个）
         uiManager.HideMsgDlg();
     }
 
@@ -712,6 +731,7 @@ public class GameManager : MonoBehaviour
             gPos.grid = lastPosition;
             gPos.SynchronizeGridPosition();
         }
+        selectedCharacter.hasMoved = false;  // 把移动状态重置一下
         uiManager.HideMsgDlg();
         uiManager.HideBattlePreviewPanel();
         uiManager.ClearAllRange();
@@ -1004,14 +1024,13 @@ public class GameManager : MonoBehaviour
         ].percentageModifier;
         battleInputInfo.isSameSide = attacker.playerIndex == defender.playerIndex;
         
-        battleManager.StartBattle(battleInputInfo);
-        battleManager.StartBattle(battleInputInfo);  // todo 这里 和 下面有一段一样的丑陋代码 一会提出来
+        battleManager.StartBattle(battleInputInfo);  
 
         msgDlgButtonInfos = GetWeaponBattlePreviewInfos(selectedCharacter.attack);  // 武器选择功能
         uiManager.ShowMsgDlg(msgDlgButtonInfos);
                                 
         uiManager.ShowBattlePreviewPanel(battleManager.SingleBattleInfo);  // 攻击预览
-        ChangeGameState(GameControlState.ConfirmWeapon); // 确认使用的攻击武器
+        ChangeGameState(GameControlState.ConfirmWeapon); // 确认使用的攻击武器 这得跳一下状态 不然不会刷新
         
     }
 

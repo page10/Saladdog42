@@ -69,6 +69,7 @@ public class AnimatorController : MonoBehaviour  //监听animator 根据它的�
 
     private void FinishMove()
     {
+        //Debug.Log("finishedMove");
         finishedMove = true;
         //mask.SetActive(true);
         if (animator)
@@ -76,6 +77,15 @@ public class AnimatorController : MonoBehaviour  //监听animator 根据它的�
             animator.SetBool( "Moving", false);
             animator.SetFloat("DirectionX", 0);
             animator.SetFloat("DirectionY", -1);
+        }
+
+    }
+
+    public void FinishMovement()
+    {
+        if (spriteRenderer)
+        {
+            spriteRenderer.color = Color.yellow;
         }
     }
 
@@ -85,11 +95,13 @@ public class AnimatorController : MonoBehaviour  //监听animator 根据它的�
     /// </summary>
     public void FinishAction()
     {
+        //Debug.Log("finishedAction");
         if (spriteRenderer)
         {
             spriteRenderer.color = Color.gray;
         }
     }
+    
 
     public void NewTurn()
     {
