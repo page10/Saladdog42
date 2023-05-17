@@ -11,17 +11,20 @@ public class CharacterObject : MonoBehaviour
     public AnimatorController animator;
     public CharacterAttack attack;
     public CharacterStatus Status = new CharacterStatus();
-
-    //todo 角色的名字，创建的时候可以随机生成一个
+    
     public string characterName = "";
     
-    public int hp;
+    public CharacterResource CharacterResource = new CharacterResource();  // todo hp修改要用这个
     public bool CanBeDestroyed { get; set; } = false;
+    
+    // 移动和攻击分开算用的标签 
+    public bool hasMoved = false;
+    public bool hasAttacked = false;
     
 
     private void Awake()
     {
-        hp = Status.hp;  // 不知道hp在这里初始化对不对呢
+        CharacterResource.hp = Status.hp;  // 不知道hp在这里初始化对不对呢
         gPos = GetComponent<GridPosition>();
         slaveTo = GetComponent<SlaveState>();
         animator = GetComponentInChildren<AnimatorController>();
@@ -64,7 +67,7 @@ public class CharacterObject : MonoBehaviour
     private CharacterStatus GetInitStatusByType(MoveType type)
     {
         // todo: 这里之后要写读表
-        CharacterStatus res = new CharacterStatus(9, 9, 3, 9, 30, 100, 10, 90, 80);
+        CharacterStatus res = new CharacterStatus(9, 9, 3, 9,  10, 90, 80);
         return res;
     }
 }

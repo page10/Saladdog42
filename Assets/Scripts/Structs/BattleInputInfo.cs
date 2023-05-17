@@ -73,7 +73,6 @@ namespace Structs
     {
         public bool isAttacker;  // 是攻击还是反击
         public int damage;
-        public bool isHit;
         public bool isCrit;
         public bool isKill;
         public CharacterStatus attackerBuffChange;
@@ -83,14 +82,13 @@ namespace Structs
         public CharacterObject attacker;
         public CharacterObject defender;
 
-        public BattleResInfo(bool isAttacker, int damage, bool isHit, bool isCrit, 
+        public BattleResInfo(bool isAttacker, int damage, bool isCrit, 
             bool isKill, CharacterStatus attackerBuffChange,
             CharacterStatus defenderBuffChange , Vector2Int attackerPosChange, Vector2Int defenderPosChange, 
             CharacterObject attacker, CharacterObject defender)
         {
             this.isAttacker = isAttacker;
             this.damage = damage;
-            this.isHit = isHit;
             this.isCrit = isCrit;
             this.isKill = isKill;
             this.attackerBuffChange = attackerBuffChange;

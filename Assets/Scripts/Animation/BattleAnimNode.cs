@@ -72,7 +72,6 @@ public class BattleAnimNode
             return (elapsed, time, objects) =>
             {
                 return elapsed > 1.0f;
-                // todo 这里试一下
                 // TODO: 之后要写弹出文字 但不是UI 
                 return true;
             };

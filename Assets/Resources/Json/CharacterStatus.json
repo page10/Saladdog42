@@ -1,0 +1,31 @@
+{
+  "CharacterStatus": [
+    {
+      "attack": 10,
+      "mAttack": 10,
+      "defense": 10,
+      "mDefense": 10,
+      "hp": 100,
+      "crit": 10,
+      "speed": 10
+    },
+    {
+      "attack": 5,
+      "mAttack": 5,
+      "defense": 5,
+      "mDefense": 5,
+      "hp": 50,
+      "crit": 5,
+      "speed": 5
+    },
+    {
+      "attack": 15,
+      "mAttack": 15,
+      "defense": 15,
+      "mDefense": 15,
+      "hp": 150,
+      "crit": 15,
+      "speed": 15
+    }
+  ]
+}

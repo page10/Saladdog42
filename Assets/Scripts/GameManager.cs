@@ -1,3 +1,4 @@
+
 using System;
 using System.Net.Http.Headers;
 using System.Collections;
@@ -33,10 +34,13 @@ public class GameManager : MonoBehaviour
     private bool haveSelectedEnemy = false;  // 状态链
     List<MsgDlgButtonInfo> msgDlgButtonInfos = new List<MsgDlgButtonInfo>();  
     private Vector2Int lastPosition;  // 上一个状态时候的character位置
+    
+    private GameData _character = new GameData();  // todo 不确定是不是对的
 
 
     private void Awake()
     {
+        _character.Start();
         currentCamera = GameObject.Find("Camera").GetComponent<Camera>();
         movementManager = GetComponent<MovementManager>();
         mapGenerator = GetComponent<MapGenerator>();
@@ -86,34 +90,63 @@ public class GameManager : MonoBehaviour
                 break;
             case GameControlState.SelectCharacter:
                 {
+                    // 看一下选中的是谁
                     if (Input.GetMouseButton(0) && waitTick <= 0)  //input不能发生在CharacterMovement里面 之后有专门的inputManager 
                     {
                         Vector2Int selectedGridPos = movementManager.GetGridPosition(
                                 currentCamera.ScreenToWorldPoint(Input.mousePosition)
                             );
                         SelectedCharacterInfo currentCharacter = GetCharacterInSelectedGrid(selectedGridPos);
-                        if (currentCharacter.playerIndex == currentPlayerIndex)  // 选中了我方角色
+
+                        if (currentCharacter.playerIndex == currentPlayerIndex)  
                         {
+                            // 如果选中了我方角色
+                            // 优先判定是不是可移动
+                            // 如果可移动 则展开移动和攻击范围 并进入「ShowRange」
+                            // 不可移动状态下 判定是否可攻击 
+                            // 如果可攻击 进入攻击武器选择状态「WeaponSelect」（在这个状态里去展开攻击范围 现在先不展开）
+                            // 如果不可攻击 则进入行动完成「CharacterActionDone」状态
+                            // （可移动不可攻击的判定在「ShowRange」里面处理）
+                            
+                            // 把攻击者设置为我选中的这个人
                             attacker = currentCharacter;   
+                            // 拿到我选中的这个人的characterObject 
                             selectedCharacter = characters[currentCharacter.playerIndex][currentCharacter.characterIndex];
-                            if (selectedCharacter.animator.IsMoveFinished(false) == true)  // 移动完了
+                            
+                            // 确认一下是不是在播动画 如果没在播动画才有事情发生
+                            if (selectedCharacter.animator.IsMoveFinished(false))  // 走路的动画还在播
                             {
                                 //Debug.Log("test");
                             }
-                            else // 还没移动
+                            else // 没在播走路动画
                             {
-                                //这里调用时候 最后一个参数传的是所有的自己单位 其实不太对 
-                                movementManager.GetMoveRange(
-                                    selectedCharacter.gameObject.GetComponent<CharacterMovement>(),
-                                    GetOccupiedGrids(currentCharacter), GetAllyGrids(currentCharacter));
-                                uiManager.ShowAllRange(selectedCharacter.gameObject.GetComponent<CharacterAttack>(),
-                                    MovementManager.GetV2IntFromDijkstraRange(movementManager.LogicMoveRange),
-                                    mapGenerator.mapSize, GetAllyGrids(currentCharacter));
-                                //uiManager.ShowMoveRange(movementManager.LogicMoveRange);
-                                //uiManager.ShowAttackRange(selectedCharacter.gameObject.GetComponent<CharacterAttack>(), MovementManager.GetV2IntFromDijkstraRange(movementManager.LogicMoveRange), mapGenerator.mapSize);  //拿到攻击范围V2Int List
-                                ChangeGameState(GameControlState.ShowRange);
+                                
+                                if (!selectedCharacter.hasMoved)  // 还没移动
+                                {
+                                    // 展开移动和攻击范围 并进入「ShowRange」
+                                    movementManager.GetMoveRange(
+                                        selectedCharacter.gameObject.GetComponent<CharacterMovement>(),
+                                        GetOccupiedGrids(currentCharacter), GetAllyGrids(currentCharacter));
+                                    uiManager.ShowAllRange(selectedCharacter.gameObject.GetComponent<CharacterAttack>(),
+                                        MovementManager.GetV2IntFromDijkstraRange(movementManager.LogicMoveRange),
+                                        mapGenerator.mapSize, GetAllyGrids(currentCharacter));
+                                    ChangeGameState(GameControlState.ShowRange);
 
-                                waitTick = 10;
+                                    waitTick = 10;
+                                }
+                                else if (selectedCharacter.hasMoved && !selectedCharacter.hasAttacked)  // 没攻击 移动过了
+                                {
+                                    // 进入攻击武器选择状态「WeaponSelect」
+                                    GameState.gameControlState = GameControlState.WeaponSelect;
+                                    
+                                }
+
+                                else  // 移动过了 攻击过了
+                                {
+                                    //什么事情也不发生 之后也可以在这里做一个状态展示UI
+                                }
+                                //这里调用时候 最后一个参数传的是所有的自己单位 其实不太对 
+
                             }
 
                         }
@@ -131,9 +164,10 @@ public class GameManager : MonoBehaviour
                 break;
             case GameControlState.ShowRange:
                 {
-                    // 在这个状态下 如果选中了敌方角色 就进入weaponSelect状态
+                    // 在这个状态下 如果选中了敌方角色 就进入攻击准备 也就是weaponSelect状态
                     // 如果选中了我方角色 且自己有治疗武器 也进入weaponSelect状态 否则什么都不发生
-                    // 
+                    // 如果选中了移动范围内格子 就执行角色移动
+                    // 如果选中了攻击范围内格子 判定是不是有
                     if (Input.GetMouseButton(0) && waitTick <= 0)
                     {
                         Vector2Int currSelectGrid = movementManager.GetGridPosition(
@@ -184,6 +218,7 @@ public class GameManager : MonoBehaviour
                                 {
                                     lastPosition = selectedCharacter.gPos.grid;  // 把这个位置更新了
                                     animatorController.StartMove(moveGrids);
+                                    selectedCharacter.hasMoved = true;
                                     ChangeGameState(GameControlState.CharacterMoving);
                                     waitTick = 10;
                                 }
@@ -294,23 +329,31 @@ public class GameManager : MonoBehaviour
 
                 }
                 break;
+            // case GameControlState.WeaponSelect:
+            //     {
+            //         // 展开武器选择菜单
+            //         // 跳转到根据对应武器展开攻击范围并选择攻击目标的「SelectAttackObject」状态
+            //         // 其实感觉这个状态可以不要的 毕竟只是展开菜单就切换状态了 只是做了这件事情 没有等待玩家输入
+            //         // 应该把SelectAttackObject改成这个
+            //
+            //         msgDlgButtonInfos = GetWeaponMsgDlgButtonInfos(selectedCharacter.attack);
+            //
+            //         uiManager.ShowMsgDlg(msgDlgButtonInfos);
+            //
+            //
+            //         
+            //         ChangeGameState(GameControlState.SelectAttackObject);
+            //         waitTick = 10;
+            //     }
+                // break;
             case GameControlState.WeaponSelect:
                 {
-                    // 还没做 先直接跳转攻击阶段了
-                    // 之后这里要根据选中的是友方还是敌方 确认不同的武器
-
+                    
+                    // 展开武器选择菜单
                     msgDlgButtonInfos = GetWeaponMsgDlgButtonInfos(selectedCharacter.attack);
 
                     uiManager.ShowMsgDlg(msgDlgButtonInfos);
-
-
                     
-                    ChangeGameState(GameControlState.SelectAttackObject);
-                    waitTick = 10;
-                }
-                break;
-            case GameControlState.SelectAttackObject:
-                {
                     CharacterAttack characterAttack = selectedCharacter.gameObject.GetComponent<CharacterAttack>();
 
                     List<Vector2Int> currAttackRange = characterAttack.GetAttackRange(
@@ -357,32 +400,24 @@ public class GameManager : MonoBehaviour
                         {
                             //留个以后错误提示的位置
                         }
-                        
-
                     }                    
                 }
                 break;
             case GameControlState.ConfirmWeapon:
                 {
                     //UI 就是对应显示两边图片 攻击 会不会打死
-
                     // 这里和ShowCommandMenu是类似的
-                    //todo 在这里要根据选择的武器刷新攻击范围 还要刷新攻击预览
-                    // 刷新攻击预览应该做在按钮里吗
-                    // 切武器刷新攻击其实是重新切一遍状态了
                     
-                    RefeshAttackRange();  // 刷新攻击范围 
+                    RefreshAttackRange();  // 刷新攻击范围 
 
-
-
-                    //ChangeGameState(GameControlState.Attack);
                 }
                 break;
             case GameControlState.Attack:
                 {
+                    // todo 总觉得这个状态也可以干掉呢 因为也就是做完一件事就跳转了 不存在循环呢
+
+                    haveSelectedEnemy = false;  // 这个现在应该也要改掉了
                     Attack();
-                    haveSelectedEnemy = false;  // 重置状态链
-                    ChangeGameState(GameControlState.PlayBattleAnimation);
                 }
                 break;
             case GameControlState.PlayBattleAnimation:
@@ -918,13 +953,14 @@ public class GameManager : MonoBehaviour
         }
 
         CharacterObject characterObject = character.GetComponent<CharacterObject>();
+        characterObject.characterName = _character.characterNameModel.names[Random.Range(0, _character.characterNameModel.names.Count)];  // todo 不一定是对的
         characters[playerIndex].Add(characterObject);
     }
 
     /// <summary>
     /// 切武器时候刷新攻击范围
     /// </summary>
-    private void RefeshAttackRange()
+    private void RefreshAttackRange()
     {
         CharacterAttack characterAttack = selectedCharacter.gameObject.GetComponent<CharacterAttack>();
 
