@@ -1,6 +1,7 @@
 {
   "CharacterStatus": [
     {
+      "id": "10set",
       "attack": 10,
       "mAttack": 10,
       "defense": 10,
@@ -10,6 +11,7 @@
       "speed": 10
     },
     {
+      "id": "5set",
       "attack": 5,
       "mAttack": 5,
       "defense": 5,
@@ -19,6 +21,7 @@
       "speed": 5
     },
     {
+      "id": "15set",
       "attack": 15,
       "mAttack": 15,
       "defense": 15,

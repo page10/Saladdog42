@@ -67,7 +67,7 @@ public class CharacterObject : MonoBehaviour
     private CharacterStatus GetInitStatusByType(MoveType type)
     {
         // todo: 这里之后要写读表
-        CharacterStatus res = new CharacterStatus(9, 9, 3, 9,  10, 90, 80);
+        CharacterStatus res = new CharacterStatus("emptyID",9, 9, 3, 9,  10, 90, 80);
         return res;
     }
 }

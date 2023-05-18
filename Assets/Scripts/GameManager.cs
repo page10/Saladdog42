@@ -35,18 +35,15 @@ public class GameManager : MonoBehaviour
     List<MsgDlgButtonInfo> msgDlgButtonInfos = new List<MsgDlgButtonInfo>();  
     private Vector2Int lastPosition;  // 上一个状态时候的character位置
     
-    private GameData _character = new GameData();  // todo 不确定是不是对的
 
 
     private void Awake()
     {
-        _character.Start();
         currentCamera = GameObject.Find("Camera").GetComponent<Camera>();
         movementManager = GetComponent<MovementManager>();
         mapGenerator = GetComponent<MapGenerator>();
         uiManager = GetComponent<UIManager>();
         battleManager = GetComponent<BattleManager>();
-        StartGame(2);
         //GameState.gameControlState = GameControlState.SelectCharacter;
         
         //debug用 之后删了
@@ -56,6 +53,12 @@ public class GameManager : MonoBehaviour
     }
 
     public int waitTick = 0;
+
+    private void Start()
+    {
+        GameData.Start();  // 读一下表
+        StartGame(2);
+    }
 
     private void FixedUpdate()
     {
@@ -934,21 +937,24 @@ public class GameManager : MonoBehaviour
         {
             for (int j = 0; j < playersAndCount[i]; j++)
             {
-                CreateCharacter(paths[i], i, allGrids[index]);
+                CreateCharacter(paths[i], i, allGrids[index], "10set");
                 index++;
             }
         }
     }
 
-    private void CreateCharacter(string prefabPath, int playerIndex, Vector2Int gridPosition)
+    private void CreateCharacter(string prefabPath, int playerIndex, Vector2Int gridPosition,string id)
     {
+        // todo 在这里使用loadedCharacterStatus这个填表数据
         GameObject character = Instantiate<GameObject>(Resources.Load<GameObject>(prefabPath));
 
         if (character == null) return;
 
         character.transform.SetParent(transform);
-
-        GridPosition gPos = character.GetComponent<GridPosition>();
+        character.GetComponent<CharacterObject>().Status = GameData.characterStatusDict[id];
+        
+        
+            GridPosition gPos = character.GetComponent<GridPosition>();
         if (gPos != null)
         {
             gPos.grid = gridPosition;
@@ -973,7 +979,7 @@ public class GameManager : MonoBehaviour
         }
 
         CharacterObject characterObject = character.GetComponent<CharacterObject>();
-        characterObject.characterName = _character.characterNameModel.names[Random.Range(0, _character.characterNameModel.names.Count)];  // todo 不一定是对的
+        characterObject.characterName = GameData.characterNameModel.names[Random.Range(0, GameData.characterNameModel.names.Count)];  // todo 不一定是对的
         characters[playerIndex].Add(characterObject);
     }
 

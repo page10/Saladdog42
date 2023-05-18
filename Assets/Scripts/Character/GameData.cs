@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 
-public class GameData 
+public static class GameData 
 {
-    public CharacterNameModel characterNameModel;
+    public static CharacterNameModel characterNameModel;
 
-    public LoadedCharacterStatus loadedCharacterStatus;
-    
+    public static Dictionary<string, CharacterStatus> characterStatusDict = new Dictionary<string, CharacterStatus>();
+
     // Start is called before the first frame update
-    public void Start()
+    public static void Start()
     {
         //string characterNames = File.ReadAllText( "Json/CharacterNames.json");
         TextAsset characterNames = Resources.Load<TextAsset>("Json/CharacterNames");
@@ -22,7 +22,12 @@ public class GameData
         }
         
         TextAsset characterStatus = Resources.Load<TextAsset>("Json/CharacterStatus");
-        loadedCharacterStatus = JsonUtility.FromJson<LoadedCharacterStatus>(characterStatus.text);
+        LoadedCharacterStatus loadedCharacterStatus = JsonUtility.FromJson<LoadedCharacterStatus>(characterStatus.text);
+        foreach (CharacterStatus status in loadedCharacterStatus.CharacterStatus)
+        {
+            characterStatusDict.Add(status.id, status);
+        }
+
         
     }
 
