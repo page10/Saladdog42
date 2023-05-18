@@ -5,9 +5,11 @@
     public struct CharacterResource
     {
         public int hp;
+        public int critCountDown;
 
-        public CharacterResource(int hp)
+        public CharacterResource(int hp,int critCountDown)
         {
             this.hp = hp;
+            this.critCountDown = critCountDown;
         }
     }
