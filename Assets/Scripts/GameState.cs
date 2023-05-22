@@ -35,10 +35,21 @@ public enum GameControlState
     // Attack,
     PlayBattleAnimation,
     CharacterActionDone, 
-    EnemyTurnStart,
+    EnemyTurn,
     EndTurn,
 }
 public static class GameState 
 {
     public static GameControlState gameControlState = GameControlState.SelectCharacter;
+    public static GameManager gameManager;
+
+    /// <summary>
+    /// 返回攻击范围内是不是有可以攻击或者治疗的对象
+    /// </summary>
+    /// <param name="selectedCharacterObject">攻击实行方</param>
+    /// <returns>所有的可攻击或治疗对象对应byte</returns>
+    public static byte GetAttackableCharacters(CharacterObject selectedCharacterObject)
+    {
+        return gameManager.CheckAbilities(selectedCharacterObject);  // CheckAbilities 是用来检查攻击范围内是不是有对象的
+    }
 }

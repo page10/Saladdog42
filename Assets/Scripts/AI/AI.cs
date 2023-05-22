@@ -6,20 +6,58 @@ using UnityEngine;
     public class AI : MonoBehaviour
     {
         private CharacterObject character;
-        private List<AIClip> _clips;
-        
+        private List<AIClip> _moveAiClips;  // 移动相关的ai
+        private List<AIClip> _attackAiClips;  // 攻击相关的ai
 
         private void Awake()
         {
             character = GetComponent<CharacterObject>();
         }
 
-        public void DoAI()
+        /// <summary>
+        /// 找到并返回第一个可用的aiclips
+        /// </summary>
+        public AIClip GetAvailableMoveAI(CharacterObject characterObj)
         {
-            for (int i = 0; i < _clips.Count; i++)
+            for (int i = 0; i < _moveAiClips.Count; i++)
             {
                 bool meet = true;
-                foreach (AICondition aiCondition in _clips[i].Conditions)
+                foreach (AICondition aiCondition in _moveAiClips[i].Conditions)
+                {
+                    if (!aiCondition(characterObj))
+                    {
+                        meet = false;
+                        break;
+                    };
+                }
+
+                if (meet)
+                {
+                    return _moveAiClips[i];
+                }
+            }
+
+            return new AIClip();
+        }
+        
+        /// <summary>
+        /// 执行aiClip中的actions
+        /// </summary>
+        /// <param name="aiClip">要执行的那个aiClip</param>
+        public void ExecuteAI(AIClip aiClip)
+        {
+            for (int j = 0; j < aiClip.Actions.Count; j++)
+            {
+                aiClip.Actions[j](character);
+            }
+        }
+
+        public void DoAI()
+        {
+            for (int i = 0; i < _moveAiClips.Count; i++)
+            {
+                bool meet = true;
+                foreach (AICondition aiCondition in _moveAiClips[i].Conditions)
                 {
                     if (!aiCondition(character))
                     {
@@ -30,19 +68,14 @@ using UnityEngine;
 
                 if (meet)
                 {
-                    for (int j = 0; j < _clips[i].Actions.Count; j++)
+                    for (int j = 0; j < _moveAiClips[i].Actions.Count; j++)
                     {
-                        _clips[i].Actions[j](character);
+                        _moveAiClips[i].Actions[j](character);
                     }
                 }
             }
         }
-        // public AICondition hasAttackableEnemy = (characterObj) =>
-        // {
-        //     List<CharacterObject> attackableEnemies = characterObj.attack.GetAttackableEnemies();
-        //     // 总觉得之前有写过判定攻击范围内是不是有敌人的方法呢……
-        //     return attackableEnemies.Count > 0;
-        // };
+
         
     }
 

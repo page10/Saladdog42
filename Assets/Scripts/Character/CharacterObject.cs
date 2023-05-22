@@ -20,6 +20,8 @@ public class CharacterObject : MonoBehaviour
     // 移动和攻击分开算用的标签 
     public bool hasMoved = false;
     public bool hasAttacked = false;
+
+    public AI characterAi;
     
 
     private void Awake()
@@ -31,6 +33,7 @@ public class CharacterObject : MonoBehaviour
         attack = GetComponent<CharacterAttack>();
         // debug 之后这里要传入参数生成不同种类的
         Status = GetInitStatusByType(MoveType.Land);
+        characterAi = GetComponent<AI>();  // 用的时候判断一下有没有 我方就是没有挂这个ai的
     }
     
     public bool IsEnemy(CharacterObject target)

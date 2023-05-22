@@ -1,4 +1,3 @@
-
 using System;
 using System.Net.Http.Headers;
 using System.Collections;
@@ -15,26 +14,25 @@ public class GameManager : MonoBehaviour
     private int currentPlayerIndex = 0;
 
     private int playerCount = 2;
-    private List<CharacterObject>[] characters;  // all rabbits(characters)
-    private CharacterObject selectedCharacter;  // selected character
+    private List<CharacterObject>[] characters; // all rabbits(characters)
+    private CharacterObject selectedCharacter; // selected character
     private GameObject currEnemy; //当前选中的敌人
     private MapGenerator mapGenerator;
     private UIManager uiManager;
-    private Vector2 currMousePosition;  // 当前鼠标位置
-    
+    private Vector2 currMousePosition; // 当前鼠标位置
+
     //战斗相关
     private BattleManager battleManager;
-    private SelectedCharacterInfo currSelectedEnemy;  // 当前选中的敌方角色
-    private SelectedCharacterInfo attacker;  // 当前选中的我方角色
-    private SelectedCharacterInfo defender;  // 当前选中的敌方角色
-    private List<SelectedCharacterInfo> attackTeam;  // 可发动连携攻击的队伍
-    
+    private SelectedCharacterInfo currSelectedEnemy; // 当前选中的敌方角色
+    private SelectedCharacterInfo attacker; // 当前选中的我方角色
+    private SelectedCharacterInfo defender; // 当前选中的敌方角色
+    private List<SelectedCharacterInfo> attackTeam; // 可发动连携攻击的队伍
+
 
     // 之后要被重构掉的东西
-    private bool haveSelectedEnemy = false;  // 状态链
-    List<MsgDlgButtonInfo> msgDlgButtonInfos = new List<MsgDlgButtonInfo>();  
-    private Vector2Int lastPosition;  // 上一个状态时候的character位置
-    
+    private bool haveSelectedEnemy = false; // 状态链
+    List<MsgDlgButtonInfo> msgDlgButtonInfos = new List<MsgDlgButtonInfo>();
+    private Vector2Int lastPosition; // 上一个状态时候的character位置
 
 
     private void Awake()
@@ -45,198 +43,197 @@ public class GameManager : MonoBehaviour
         uiManager = GetComponent<UIManager>();
         battleManager = GetComponent<BattleManager>();
         //GameState.gameControlState = GameControlState.SelectCharacter;
-        
+
+        GameState.gameManager = this;
+
         //debug用 之后删了
-        msgDlgButtonInfos.Add(new MsgDlgButtonInfo("attack", (p)=>{Debug.Log("attack");}, Array.Empty<object>()));
-        msgDlgButtonInfos.Add(new MsgDlgButtonInfo("exchange", (p)=>{Debug.Log("exchange");}, Array.Empty<object>()));
-        msgDlgButtonInfos.Add(new MsgDlgButtonInfo("skip", (p)=>{Debug.Log("skip");}, Array.Empty<object>()));
+        msgDlgButtonInfos.Add(new MsgDlgButtonInfo("attack", (p) => { Debug.Log("attack"); }, Array.Empty<object>()));
+        msgDlgButtonInfos.Add(
+            new MsgDlgButtonInfo("exchange", (p) => { Debug.Log("exchange"); }, Array.Empty<object>()));
+        msgDlgButtonInfos.Add(new MsgDlgButtonInfo("skip", (p) => { Debug.Log("skip"); }, Array.Empty<object>()));
     }
 
     public int waitTick = 0;
 
     private void Start()
     {
-        GameData.Start();  // 读一下表
+        GameData.Start(); // 读一下表
         StartGame(2);
     }
 
     private void FixedUpdate()
     {
-        
         switch (GameState.gameControlState)
         {
-            //todo 先选人后选移动位置的那个流程 状态跳转 选武器漏写了
             case GameControlState.NewTurn:
+            {
+                if (currentPlayerIndex != 0)
                 {
-                    if (currentPlayerIndex != 0)
-                    {
-                        ChangeGameState(GameControlState.EndTurn);
-                        return;
-                    }
-                    uiManager.ClearAllRange();
-                    //重置可移动角色的移动状态 和可攻击状态   
-                    //这里直接把所有角色的可移动状态重置吧 反正玩家也操作不了敌人队伍
-                    for (int i = 0; i < playerCount; i++)
-                    {
-                        for (int j = 0; j < characters[i].Count; j++)
-                        {
-                            characters[i][j].animator.NewTurn();
-                            characters[i][j].hasAttacked = false;
-                            characters[i][j].hasMoved = false;
-                        }
-                    }
-
-                    if (currentPlayerIndex == 0)
-                    {
-                        ChangeGameState(GameControlState.SelectCharacter);
-                    }
-
+                    ChangeGameState(GameControlState.EnemyTurn);
+                    return;
                 }
+
+                uiManager.ClearAllRange();
+                //重置可移动角色的移动状态 和可攻击状态   
+                //这里直接把所有角色的可移动状态重置吧 反正玩家也操作不了敌人队伍
+                for (int i = 0; i < playerCount; i++)
+                {
+                    for (int j = 0; j < characters[i].Count; j++)
+                    {
+                        characters[i][j].animator.NewTurn();
+                        characters[i][j].hasAttacked = false;
+                        characters[i][j].hasMoved = false;
+                    }
+                }
+
+                if (currentPlayerIndex == 0)
+                {
+                    ChangeGameState(GameControlState.SelectCharacter);
+                }
+            }
                 break;
             case GameControlState.SelectCharacter:
+            {
+                // 看一下选中的是谁
+                if (Input.GetMouseButton(0) && waitTick <= 0) //input不能发生在CharacterMovement里面 之后有专门的inputManager 
                 {
-                    // 看一下选中的是谁
-                    if (Input.GetMouseButton(0) && waitTick <= 0)  //input不能发生在CharacterMovement里面 之后有专门的inputManager 
+                    Vector2Int selectedGridPos = movementManager.GetGridPosition(
+                        currentCamera.ScreenToWorldPoint(Input.mousePosition)
+                    );
+                    SelectedCharacterInfo currentCharacter = GetCharacterInSelectedGrid(selectedGridPos);
+
+                    if (currentCharacter.playerIndex == currentPlayerIndex)
                     {
-                        Vector2Int selectedGridPos = movementManager.GetGridPosition(
-                                currentCamera.ScreenToWorldPoint(Input.mousePosition)
-                            );
-                        SelectedCharacterInfo currentCharacter = GetCharacterInSelectedGrid(selectedGridPos);
+                        // 如果选中了我方角色
+                        // 优先判定是不是可移动
+                        // 如果可移动 则展开移动和攻击范围 并进入「ShowRange」
+                        // 不可移动状态下 判定是否可攻击 
+                        // 如果可攻击 进入攻击武器选择状态「WeaponSelect」（在这个状态里去展开攻击范围 现在先不展开）
+                        // 如果不可攻击 什么事情也不发生
+                        // （可移动不可攻击的判定在「ShowRange」里面处理）
 
-                        if (currentCharacter.playerIndex == currentPlayerIndex)  
+                        // 把攻击者设置为我选中的这个人
+                        attacker = currentCharacter;
+                        // 拿到我选中的这个人的characterObject 
+                        selectedCharacter = characters[currentCharacter.playerIndex][currentCharacter.characterIndex];
+
+                        // 确认一下是不是在播动画 如果没在播动画才有事情发生
+                        // if (selectedCharacter.animator.IsMoveFinished(false))  // 走路的动画还在播
+                        // {
+                        //     //Debug.Log("test");
+                        // }
+                        // else // 没在播走路动画
+                        // {
+
+                        if (!selectedCharacter.hasMoved) // 还没移动
                         {
-                            // 如果选中了我方角色
-                            // 优先判定是不是可移动
-                            // 如果可移动 则展开移动和攻击范围 并进入「ShowRange」
-                            // 不可移动状态下 判定是否可攻击 
-                            // 如果可攻击 进入攻击武器选择状态「WeaponSelect」（在这个状态里去展开攻击范围 现在先不展开）
-                            // 如果不可攻击 什么事情也不发生
-                            // （可移动不可攻击的判定在「ShowRange」里面处理）
-                            
-                            // 把攻击者设置为我选中的这个人
-                            attacker = currentCharacter;   
-                            // 拿到我选中的这个人的characterObject 
-                            selectedCharacter = characters[currentCharacter.playerIndex][currentCharacter.characterIndex];
-                            
-                            // 确认一下是不是在播动画 如果没在播动画才有事情发生
-                            // if (selectedCharacter.animator.IsMoveFinished(false))  // 走路的动画还在播
-                            // {
-                            //     //Debug.Log("test");
-                            // }
-                            // else // 没在播走路动画
-                            // {
-                                
-                                if (!selectedCharacter.hasMoved)  // 还没移动
-                                {
-                                    // 展开移动和攻击范围 并进入「ShowRange」
-                                    movementManager.GetMoveRange(
-                                        selectedCharacter.gameObject.GetComponent<CharacterMovement>(),
-                                        GetOccupiedGrids(currentCharacter), GetAllyGrids(currentCharacter));
-                                    uiManager.ShowAllRange(selectedCharacter.gameObject.GetComponent<CharacterAttack>(),
-                                        MovementManager.GetV2IntFromDijkstraRange(movementManager.LogicMoveRange),
-                                        mapGenerator.mapSize, GetAllyGrids(currentCharacter));
-                                    ChangeGameState(GameControlState.ShowRange);
+                            // 展开移动和攻击范围 并进入「ShowRange」
+                            movementManager.GetMoveRange(
+                                selectedCharacter.gameObject.GetComponent<CharacterMovement>(),
+                                GetOccupiedGrids(currentCharacter), GetAllyGrids(currentCharacter));
+                            uiManager.ShowAllRange(selectedCharacter.gameObject.GetComponent<CharacterAttack>(),
+                                MovementManager.GetV2IntFromDijkstraRange(movementManager.LogicMoveRange),
+                                mapGenerator.mapSize, GetAllyGrids(currentCharacter));
+                            ChangeGameState(GameControlState.ShowRange);
 
-                                    waitTick = 10;
-                                }
-                                else if (!selectedCharacter.hasAttacked)  // 没攻击 移动过了
-                                {
-                                    // 进入攻击武器选择状态「WeaponSelect」
-                                    ChangeGameState(GameControlState.WeaponSelect);
-                                    waitTick = 10;
-                                    
-                                }
-
-                                else  // 移动过了 攻击过了
-                                {
-                                    //什么事情也不发生 之后也可以在这里做一个状态展示UI
-                                }
-                                //这里调用时候 最后一个参数传的是所有的自己单位 其实不太对 
-
-                            //}
-
+                            waitTick = 10;
                         }
-                        else if (currentCharacter.playerIndex == Constants.nullPlayerIndex)  // 选到了空格子
+                        else if (!selectedCharacter.hasAttacked) // 没攻击 移动过了
                         {
-
-                        }
-                        else  // 选中了敌方角色
-                        {
-                            
+                            // 进入攻击武器选择状态「WeaponSelect」
+                            ChangeGameState(GameControlState.WeaponSelect);
+                            waitTick = 10;
                         }
 
+                        else // 移动过了 攻击过了
+                        {
+                            //什么事情也不发生 之后也可以在这里做一个状态展示UI
+                        }
+                        //这里调用时候 最后一个参数传的是所有的自己单位 其实不太对 
+
+                        //}
+                    }
+                    else if (currentCharacter.playerIndex == Constants.nullPlayerIndex) // 选到了空格子
+                    {
+                    }
+                    else // 选中了敌方角色
+                    {
                     }
                 }
+            }
                 break;
             case GameControlState.ShowRange:
+            {
+                // 在这个状态下 如果选中了敌方角色 就进入攻击准备 也就是weaponSelect状态
+                // 如果选中了我方角色 且自己有治疗武器 也进入weaponSelect状态 否则什么都不发生
+                // 如果选中了移动范围内格子 就执行角色移动
+                // 如果选中了攻击范围内格子 判定是不是有
+                if (Input.GetMouseButton(0) && waitTick <= 0)
                 {
-                    // 在这个状态下 如果选中了敌方角色 就进入攻击准备 也就是weaponSelect状态
-                    // 如果选中了我方角色 且自己有治疗武器 也进入weaponSelect状态 否则什么都不发生
-                    // 如果选中了移动范围内格子 就执行角色移动
-                    // 如果选中了攻击范围内格子 判定是不是有
-                    if (Input.GetMouseButton(0) && waitTick <= 0)
+                    Vector2Int currSelectGrid = movementManager.GetGridPosition(
+                        currentCamera.ScreenToWorldPoint(Input.mousePosition));
+                    SelectedCharacterInfo currentCharacter = GetCharacterInSelectedGrid(currSelectGrid);
+
+                    Vector2Int characterGrid = selectedCharacter.gameObject.GetComponent<GridPosition>().grid; // 自己那格
+                    //Debug.Log("currSelectGrid , characterGrid" + currSelectGrid + "  " + characterGrid);
+                    if (currentCharacter.playerIndex == 0 && currSelectGrid != characterGrid)
                     {
-                        Vector2Int currSelectGrid = movementManager.GetGridPosition(
-                                currentCamera.ScreenToWorldPoint(Input.mousePosition));
-                        SelectedCharacterInfo currentCharacter = GetCharacterInSelectedGrid(currSelectGrid);
-
-                        Vector2Int characterGrid = selectedCharacter.gameObject.GetComponent<GridPosition>().grid;  // 自己那格
-                        //Debug.Log("currSelectGrid , characterGrid" + currSelectGrid + "  " + characterGrid);
-                        if (currentCharacter.playerIndex == 0 && currSelectGrid != characterGrid)
+                        //选中了我方角色 除了自己
+                        Debug.Log("selected ally characters");
+                    }
+                    else if (currentCharacter.playerIndex != Constants.nullPlayerIndex &&
+                             currSelectGrid != characterGrid)
+                    {
+                        //选中了敌方角色
+                        Debug.Log("selected enemy characters");
+                        SelectedCharacterInfo currentEnemy = GetCharacterInSelectedGrid(currSelectGrid);
+                        defender = currentEnemy; // 之后计算伤害的也要用这个敌人
+                        currEnemy = characters[currentCharacter.playerIndex][currentCharacter.characterIndex]
+                            .gameObject;
+                        ChangeGameState(GameControlState.ShowAttackableArea);
+                    }
+                    else
+                    {
+                        //没选中我方或敌方角色 包括自己脚下
+                        Debug.Log("selected no character");
+                        List<Vector2Int> moveGrids = movementManager.GetMovePath(
+                            currSelectGrid //以后在这要提出来改一下 
+                        );
+                        if (moveGrids.Count > 0)
                         {
-                            //选中了我方角色 除了自己
-                            Debug.Log("selected ally characters");
+                            uiManager.ClearAllRange();
+                            for (int i = 0; i < moveGrids.Count; i++)
+                            {
+                                //Debug.Log("[" + i + "]" + moveGrids[i]);
+                                uiManager.AddRange(SignType.Move, moveGrids[i]);
+                            }
 
-                        }
-                        else if (currentCharacter.playerIndex != Constants.nullPlayerIndex && currSelectGrid != characterGrid)
-                        {
-                            //选中了敌方角色
-                            Debug.Log("selected enemy characters");
-                            SelectedCharacterInfo currentEnemy = GetCharacterInSelectedGrid(currSelectGrid);
-                            defender = currentEnemy;  // 之后计算伤害的也要用这个敌人
-                            currEnemy = characters[currentCharacter.playerIndex][currentCharacter.characterIndex].gameObject;  
-                            ChangeGameState(GameControlState.ShowAttackableArea);
+                            if (selectedCharacter.gameObject == null)
+                            {
+                                ChangeGameState(GameControlState.SelectCharacter);
+                                waitTick = 10;
+                                return;
+                            }
+
+                            AnimatorController animatorController =
+                                selectedCharacter.gameObject.GetComponent<AnimatorController>();
+                            if (animatorController != null)
+                            {
+                                lastPosition = selectedCharacter.gPos.grid; // 把这个位置更新了
+                                animatorController.StartMove(moveGrids);
+                                selectedCharacter.hasMoved = true;
+                                selectedCharacter.animator.FinishMovement(); // 改一下颜色
+                                ChangeGameState(GameControlState.CharacterMoving);
+                                waitTick = 10;
+                            }
                         }
                         else
                         {
-                            //没选中我方或敌方角色 包括自己脚下
-                            Debug.Log("selected no character");
-                            List<Vector2Int> moveGrids = movementManager.GetMovePath(
-                                currSelectGrid  //以后在这要提出来改一下 
-                                );
-                            if (moveGrids.Count > 0)
-                            {
-                                uiManager.ClearAllRange();
-                                for (int i = 0; i < moveGrids.Count; i++)
-                                {
-                                    //Debug.Log("[" + i + "]" + moveGrids[i]);
-                                    uiManager.AddRange(SignType.Move, moveGrids[i]);
-                                }
-
-                                if (selectedCharacter.gameObject == null)
-                                {
-                                    ChangeGameState(GameControlState.SelectCharacter);
-                                    waitTick = 10;
-                                    return;
-                                }
-                                AnimatorController animatorController = selectedCharacter.gameObject.GetComponent<AnimatorController>();
-                                if (animatorController != null)
-                                {
-                                    lastPosition = selectedCharacter.gPos.grid;  // 把这个位置更新了
-                                    animatorController.StartMove(moveGrids);
-                                    selectedCharacter.hasMoved = true;
-                                    selectedCharacter.animator.FinishMovement();  // 改一下颜色
-                                    ChangeGameState(GameControlState.CharacterMoving);
-                                    waitTick = 10;
-                                }
-                            }
-                            else
-                            {
-                                //留个以后错误提示的位置
-                            }
+                            //留个以后错误提示的位置
                         }
                     }
                 }
+            }
                 break;
             case GameControlState.ShowAttackableArea:
             {
@@ -244,7 +241,8 @@ public class GameManager : MonoBehaviour
                 // 找这个攻击范围 和我可移动范围的交集 
                 // 显示交集内的格子 不显示其他格子
                 List<Vector2Int> currAttackRange = selectedCharacter.gameObject.GetComponent<CharacterAttack>()
-                    .GetAttackRange(currEnemy.GetComponent<GridPosition>().grid, mapGenerator.mapSize, Constants.TargetType_Foe);
+                    .GetAttackRange(currEnemy.GetComponent<GridPosition>().grid, mapGenerator.mapSize,
+                        Constants.TargetType_Foe);
                 List<DijkstraMoveInfo> currMoveRange = movementManager.LogicMoveRange;
 
                 List<Vector2Int> attackableArea = new List<Vector2Int>();
@@ -304,183 +302,186 @@ public class GameManager : MonoBehaviour
             }
                 break;
             case GameControlState.CharacterMoving:
+            {
+                if (selectedCharacter.gameObject == null)
                 {
-                    if (selectedCharacter.gameObject == null)
-                    {
-                        ChangeGameState(GameControlState.SelectCharacter);
-                        waitTick = 10;
-                        uiManager.ClearAllRange();
-                        return;
-                    }
-                    MoveByPath moveByPath = selectedCharacter.gameObject.GetComponent<MoveByPath>();
-                    if (moveByPath == null || moveByPath.IsMoving == false)  //这次移动移动完成
-                    {
-                        uiManager.ClearAllRange();
-                        if (!haveSelectedEnemy)  // 我还没选敌人
-                        {
-                            msgDlgButtonInfos = GetMsgDlgButtonInfos();
+                    ChangeGameState(GameControlState.SelectCharacter);
+                    waitTick = 10;
+                    uiManager.ClearAllRange();
+                    return;
+                }
 
-                            uiManager.ShowMsgDlg(msgDlgButtonInfos);
-                            ChangeGameState(GameControlState.ShowCommandMenu);
-                            waitTick = 10;
-                        }
-                        else  // 我之前已经选过敌人了
-                        {
-                            ChangeGameState(GameControlState.WeaponSelect);
-                        }
+                MoveByPath moveByPath = selectedCharacter.gameObject.GetComponent<MoveByPath>();
+                if (moveByPath == null || moveByPath.IsMoving == false) //这次移动移动完成
+                {
+                    uiManager.ClearAllRange();
+                    if (!haveSelectedEnemy) // 我还没选敌人
+                    {
+                        msgDlgButtonInfos = GetMsgDlgButtonInfos();
+
+                        uiManager.ShowMsgDlg(msgDlgButtonInfos);
+                        ChangeGameState(GameControlState.ShowCommandMenu);
+                        waitTick = 10;
+                    }
+                    else // 我之前已经选过敌人了
+                    {
+                        ChangeGameState(GameControlState.WeaponSelect);
                     }
                 }
+            }
                 break;
             case GameControlState.ShowCommandMenu:
-                {
-
-                }
+            {
+            }
                 break;
-            // case GameControlState.WeaponSelect:
-            //     {
-            //         // 展开武器选择菜单
-            //         // 跳转到根据对应武器展开攻击范围并选择攻击目标的「SelectAttackObject」状态
-            //         // 其实感觉这个状态可以不要的 毕竟只是展开菜单就切换状态了 只是做了这件事情 没有等待玩家输入
-            //         // 应该把SelectAttackObject改成这个
-            //
-            //         msgDlgButtonInfos = GetWeaponMsgDlgButtonInfos(selectedCharacter.attack);
-            //
-            //         uiManager.ShowMsgDlg(msgDlgButtonInfos);
-            //
-            //
-            //         
-            //         ChangeGameState(GameControlState.SelectAttackObject);
-            //         waitTick = 10;
-            //     }
-                // break;
             case GameControlState.WeaponSelect:
-                {
-                    // 进入这个状态的时候 应该都是 可攻击不可移动的状态了
-                    // 在这个状态选择要使用的武器
-                    // 并且根据选择的武器 展开攻击范围
-                    // 菜单中仍然包含cancel选项
-                    
-                    // 这部分逻辑还是留着吧
-                    msgDlgButtonInfos = GetWeaponMsgDlgButtonInfos(selectedCharacter.attack);
-                    
-                    uiManager.ShowMsgDlg(msgDlgButtonInfos);
-                    
-                    CharacterAttack characterAttack = selectedCharacter.gameObject.GetComponent<CharacterAttack>();
+            {
+                // 进入这个状态的时候 应该都是 可攻击不可移动的状态了
+                // 在这个状态选择要使用的武器
+                // 并且根据选择的武器 展开攻击范围
+                // 菜单中仍然包含cancel选项
 
-                    List<Vector2Int> currAttackRange = characterAttack.GetAttackRange(
-                        selectedCharacter.gPos.grid, mapGenerator.mapSize,
-                        characterAttack.Weapons[characterAttack.weaponCurIndex].target
-                    );
-                    
-                    if (currAttackRange.Count > 0)
-                    {
-                        uiManager.ClearAllRange();
-                        uiManager.ShowAttackableMoveRange(currAttackRange);
-                    }
-                    
-                    // 如果之前有选过人 直接跳下一个阶段
-                    if (haveSelectedEnemy)
-                    {
-                        CalBattlePreview();
-                    }
+                // 这部分逻辑还是留着吧
+                msgDlgButtonInfos = GetWeaponMsgDlgButtonInfos(selectedCharacter.attack);
 
-                    
-                    if (Input.GetMouseButton(0) && waitTick <= 0)
-                    {
-                        Vector2Int currSelectGrid = movementManager.GetGridPosition(
-                                currentCamera.ScreenToWorldPoint(Input.mousePosition));
-                        
-                        if (currAttackRange.Contains(currSelectGrid))
-                        {
-                            defender = GetCharacterInSelectedGrid(currSelectGrid);
-                            // 这里是不是有必要根据当前持有的武器限定可点击对象呢？目前限定了 但是感觉有点僵硬
-                            if (defender.characterIndex == Constants.nullCharacterIndex)  // 没选中任何角色
-                            {
+                uiManager.ShowMsgDlg(msgDlgButtonInfos);
 
-                            }
-                            else if (defender.playerIndex == attacker.playerIndex &&
-                                     (characterAttack.Weapons[characterAttack.weaponCurIndex].target |
-                                      Constants.TargetType_Ally) == Constants.TargetType_Ally) // 选中了我方角色
-                            {
-                                CalBattlePreview();
-                            }
-                            else if (defender.playerIndex != attacker.playerIndex &&
-                                     (characterAttack.Weapons[characterAttack.weaponCurIndex].target |
-                                      Constants.TargetType_Foe) == Constants.TargetType_Foe) // 选中了某个敌方角色
-                            {
-                                CalBattlePreview();
-                            }
-                        
-                        }
-                        else
-                        {
-                            //留个以后错误提示的位置
-                        }
-                    }                    
-                }
-                break;
-            case GameControlState.ConfirmWeapon:
-                {
-                    //UI 就是对应显示两边图片 攻击 会不会打死
-                    // 这里和ShowCommandMenu是类似的
-                    
-                    RefreshAttackRange();  // 刷新攻击范围 
+                CharacterAttack characterAttack = selectedCharacter.gameObject.GetComponent<CharacterAttack>();
 
-                }
-                break;
-            // case GameControlState.Attack:
-            //     {
-            //         haveSelectedEnemy = false;  // 这个现在应该也要改掉了
-            //         Attack();
-            //     }
-            //     break;
-            case GameControlState.PlayBattleAnimation:
+                List<Vector2Int> currAttackRange = characterAttack.GetAttackRange(
+                    selectedCharacter.gPos.grid, mapGenerator.mapSize,
+                    characterAttack.Weapons[characterAttack.weaponCurIndex].target
+                );
+
+                if (currAttackRange.Count > 0)
                 {
-                    haveSelectedEnemy = false;  // todo 这个现在应该也要改掉了
-                    if (battleManager.IsPlayingAnimation == false)
-                    {
-                        ChangeGameState(GameControlState.CharacterActionDone);
-                        selectedCharacter.animator.FinishAction();
-                    }
-                }
-                break;
-            case GameControlState.CharacterActionDone:  // 它的语义是 这回合行动结束
-                {
-                    
                     uiManager.ClearAllRange();
-                    bool haveAllFinished = true;
-                    for (int i = 0; i < characters[0].Count; i++)
+                    uiManager.ShowAttackableMoveRange(currAttackRange);
+                }
+
+                // 如果之前有选过人 直接跳下一个阶段
+                if (haveSelectedEnemy)
+                {
+                    CalBattlePreview();
+                }
+
+
+                if (Input.GetMouseButton(0) && waitTick <= 0)
+                {
+                    Vector2Int currSelectGrid = movementManager.GetGridPosition(
+                        currentCamera.ScreenToWorldPoint(Input.mousePosition));
+
+                    if (currAttackRange.Contains(currSelectGrid))
                     {
-                        if (characters[0][i].animator.IsMoveFinished(false) == false)
+                        defender = GetCharacterInSelectedGrid(currSelectGrid);
+                        // 这里是不是有必要根据当前持有的武器限定可点击对象呢？目前限定了 但是感觉有点僵硬
+                        if (defender.characterIndex == Constants.nullCharacterIndex) // 没选中任何角色
                         {
-                            haveAllFinished = false;
-                            break;
                         }
-                    }
-                    if (haveAllFinished)  // 所有我方单位都移动完了
-                    {
-                        ChangeGameState(GameControlState.EndTurn);  //回合结束
+                        else if (defender.playerIndex == attacker.playerIndex &&
+                                 (characterAttack.Weapons[characterAttack.weaponCurIndex].target |
+                                  Constants.TargetType_Ally) == Constants.TargetType_Ally) // 选中了我方角色
+                        {
+                            CalBattlePreview();
+                        }
+                        else if (defender.playerIndex != attacker.playerIndex &&
+                                 (characterAttack.Weapons[characterAttack.weaponCurIndex].target |
+                                  Constants.TargetType_Foe) == Constants.TargetType_Foe) // 选中了某个敌方角色
+                        {
+                            CalBattlePreview();
+                        }
                     }
                     else
                     {
-                        ChangeGameState(GameControlState.SelectCharacter);  //选人移动
+                        //留个以后错误提示的位置
                     }
                 }
+            }
                 break;
-            case GameControlState.EnemyTurnStart:
-                {
+            case GameControlState.ConfirmWeapon:
+            {
+                //UI 就是对应显示两边图片 攻击 会不会打死
+                // 这里和ShowCommandMenu是类似的
 
+                RefreshAttackRange(); // 刷新攻击范围 
+            }
+                break;
+            case GameControlState.PlayBattleAnimation:
+            {
+                haveSelectedEnemy = false; // todo 这个现在应该也要改掉了
+                if (battleManager.IsPlayingAnimation == false)
+                {
+                    ChangeGameState(GameControlState.CharacterActionDone);
+                    selectedCharacter.animator.FinishAction();
                 }
+            }
+                break;
+            case GameControlState.CharacterActionDone: // 它的语义是 这回合行动结束
+            {
+                uiManager.ClearAllRange();
+                bool haveAllFinished = true;
+                for (int i = 0; i < characters[0].Count; i++)
+                {
+                    if (characters[0][i].animator.IsMoveFinished(false) == false)
+                    {
+                        haveAllFinished = false;
+                        break;
+                    }
+                }
+
+                if (haveAllFinished) // 所有我方单位都移动完了
+                {
+                    ChangeGameState(GameControlState.EndTurn); //回合结束
+                }
+                else
+                {
+                    ChangeGameState(GameControlState.SelectCharacter); //选人移动
+                }
+            }
+                break;
+            case GameControlState.EnemyTurn:
+            {
+                // 敌方回合开始
+                // 挨个判断各单位是否可以移动 是否可以攻击
+                // 可以移动的话 遍历aiClips有没有可以执行的 有就立刻执行 没有就跳过
+                // 可以移动的话 找是不是有可执行的攻击条件 有就执行 没有结束
+                // 还要有一个敌人回合选敌人的状态
+
+                // for 循环 得到selectedCharacter是谁 如果for走完了 就进入endTurn
+                for (int i = 0; i < characters[currentPlayerIndex].Count; i++)
+                {
+                    // 判断这个角色是否可以移动
+                    if (characters[currentPlayerIndex][i].hasMoved == false)
+                    {
+                        selectedCharacter = characters[currentPlayerIndex][i];
+                        
+                        if (selectedCharacter.characterAi)
+                        {
+                            // 遍历移动相关的aiclips列表找到第一个可执行的aiclip
+                            AIClip moveAI = selectedCharacter.characterAi.GetAvailableMoveAI(selectedCharacter);
+
+                            // 执行moveAI中的各个actions
+                            selectedCharacter.characterAi.ExecuteAI(moveAI);
+                            break;
+                        }
+                    }
+                    else if (characters[currentPlayerIndex][i].hasAttacked == false)
+                    {
+                        selectedCharacter = characters[currentPlayerIndex][i];
+                        // 遍历攻击相关的aiclips列表找有没有可以执行的
+                    }
+                }
+            }
                 break;
             case GameControlState.EndTurn:
-                {
-                    currentPlayerIndex = (currentPlayerIndex + 1) % playerCount;
+            {
+                currentPlayerIndex = (currentPlayerIndex + 1) % playerCount;
 
-                    ChangeGameState(GameControlState.NewTurn);
-                }
+                ChangeGameState(GameControlState.NewTurn);
+            }
                 break;
-
         }
+
         if (waitTick > 0)
         {
             waitTick -= 1;
@@ -494,9 +495,9 @@ public class GameManager : MonoBehaviour
     private void ChangeGameState(GameControlState state)
     {
         Debug.Log(state);
-        if (state == GameControlState.SelectCharacter)  // 死亡时移除
+        if (state == GameControlState.SelectCharacter) // 死亡时移除
         {
-            selectedCharacter = null;  // 回合开始 把我方和敌方的选中角色都清空
+            selectedCharacter = null; // 回合开始 把我方和敌方的选中角色都清空
             currEnemy = null;
 
             foreach (List<CharacterObject> charas in characters)
@@ -504,7 +505,7 @@ public class GameManager : MonoBehaviour
                 int index = 0;
                 while (index < charas.Count)
                 {
-                    if(charas[index].CanBeDestroyed)
+                    if (charas[index].CanBeDestroyed)
                     {
                         Destroy(charas[index].gameObject);
                         charas.RemoveAt(index);
@@ -516,6 +517,7 @@ public class GameManager : MonoBehaviour
                 }
             }
         }
+
         GameState.gameControlState = state;
     }
 
@@ -526,34 +528,37 @@ public class GameManager : MonoBehaviour
     {
         List<MsgDlgButtonInfo> currentMsgDlgButtonInfos = new List<MsgDlgButtonInfo>();
         byte abilities = CheckAbilities(selectedCharacter);
-        bool canExchangeItem = CheckExchangeItemAbility();  // 这个还没写
-        bool canAccessBackup = CheckAccessBackupAbility();  // 这个也还没写
+        bool canExchangeItem = CheckExchangeItemAbility(); // 这个还没写
+        bool canAccessBackup = CheckAccessBackupAbility(); // 这个也还没写
 
-        if ((Constants.TargetType_Foe&abilities) == Constants.TargetType_Foe)
+        if ((Constants.TargetType_Foe & abilities) == Constants.TargetType_Foe)
         {
-            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Attack", AttackCommand, Array.Empty<object>()));
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("Attack", AttackCommand, Array.Empty<object>()));
         }
-        if ((Constants.TargetType_Ally&abilities) == Constants.TargetType_Ally)
+
+        if ((Constants.TargetType_Ally & abilities) == Constants.TargetType_Ally)
         {
-            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Heal", HealCommand, Array.Empty<object>()));
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("Heal", HealCommand, Array.Empty<object>()));
         }
+
         if (canExchangeItem)
         {
-            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("canExchangeItem", ExchangeCommand, Array.Empty<object>()));
+            currentMsgDlgButtonInfos.Add(
+                new MsgDlgButtonInfo("canExchangeItem", ExchangeCommand, Array.Empty<object>()));
         }
+
         if (canAccessBackup)
         {
-            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("AccessBackup", BackupCommand, Array.Empty<object>()));
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("AccessBackup", BackupCommand, Array.Empty<object>()));
         }
 
         // 以下是啥时候都要加的按钮
-        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Wait", WaitCommand, Array.Empty<object>()));
-        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Inventory", InventoryCommand, Array.Empty<object>()));
-        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Cancel", CancelCommand, Array.Empty<object>()));  
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("Wait", WaitCommand, Array.Empty<object>()));
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("Inventory", InventoryCommand, Array.Empty<object>()));
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("Cancel", CancelCommand, Array.Empty<object>()));
 
 
         return currentMsgDlgButtonInfos;
-
     }
 
     /// <summary>
@@ -566,12 +571,14 @@ public class GameManager : MonoBehaviour
         List<MsgDlgButtonInfo> currentMsgDlgButtonInfos = new List<MsgDlgButtonInfo>();
         for (int i = 0; i < characterAttack.Weapons.Count; i++)
         {
-            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo(characterAttack.Weapons[i].weaponName, WeaponCommand, new object[] { i }));
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo(characterAttack.Weapons[i].weaponName, WeaponCommand,
+                new object[] { i }));
         }
-        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo ("Cancel", CancelCommand, Array.Empty<object>()));  
+
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("Cancel", CancelCommand, Array.Empty<object>()));
         return currentMsgDlgButtonInfos;
     }
-    
+
     /// <summary>
     /// 战斗预览菜单页面 选择武器部分
     /// </summary>
@@ -582,15 +589,17 @@ public class GameManager : MonoBehaviour
         List<MsgDlgButtonInfo> currentMsgDlgButtonInfos = new List<MsgDlgButtonInfo>();
         for (int i = 0; i < characterAttack.Weapons.Count; i++)
         {
-            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo(characterAttack.Weapons[i].weaponName, WeaponPreviewCommand,
+            currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo(characterAttack.Weapons[i].weaponName,
+                WeaponPreviewCommand,
                 new object[] { i }));
         }
 
         currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("Cancel", CancelCommand, Array.Empty<object>()));
-        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("AttackConfirm", AttackConfirmCommand, Array.Empty<object>()));
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("AttackConfirm", AttackConfirmCommand,
+            Array.Empty<object>()));
         return currentMsgDlgButtonInfos;
     }
-    
+
     /// <summary>
     /// 用于选择武器界面的武器选择按钮
     /// </summary>
@@ -600,7 +609,7 @@ public class GameManager : MonoBehaviour
         selectedCharacter.attack.weaponCurIndex = (int)args[0];
         uiManager.HideMsgDlg();
     }
-    
+
     /// <summary>
     /// 用于攻击预览界面的武器选择按钮
     /// </summary>
@@ -608,11 +617,11 @@ public class GameManager : MonoBehaviour
     private void WeaponPreviewCommand(params object[] args)
     {
         selectedCharacter.attack.weaponCurIndex = (int)args[0];
-        // todo 这里要重算一遍攻击 先这么写不一定对
+        // todo 这里要重算一遍攻击 这个计算没有去掉概率 但是打算整体战斗去掉概率
         //uiManager.HideMsgDlg();
         CalBattlePreview();
     }
-    
+
     /// <summary>
     /// 点这个按钮切到攻击执行
     /// </summary>
@@ -625,7 +634,6 @@ public class GameManager : MonoBehaviour
         //GameState.gameControlState = GameControlState.Attack;
         Attack();
         selectedCharacter.hasAttacked = true;
-
     }
 
     /// <summary>
@@ -655,12 +663,12 @@ public class GameManager : MonoBehaviour
             battleInputInfo.defenderPos.y
         ].percentageModifier;
         battleInputInfo.isSameSide = attacker.playerIndex == defender.playerIndex;
-        
+
         battleManager.StartBattle(battleInputInfo);
         battleManager.StartBattleAnim();
         ChangeGameState(GameControlState.PlayBattleAnimation);
     }
-    
+
     /// <summary>
     /// 点这个按钮切到攻击准备状态 在攻击状态里调攻击函数
     /// </summary>
@@ -669,7 +677,6 @@ public class GameManager : MonoBehaviour
         uiManager.HideMsgDlg();
         // 移动完成之后的选择攻击目标
         GameState.gameControlState = GameControlState.WeaponSelect;
-
     }
 
     /// <summary>
@@ -727,14 +734,15 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void CancelCommand(object[] args)
     {
-        selectedCharacter.animator.NewTurn();  // 把animator状态重置一下
+        selectedCharacter.animator.NewTurn(); // 把animator状态重置一下
         GridPosition gPos = selectedCharacter.gameObject.GetComponent<GridPosition>();
         if (gPos != null)
         {
             gPos.grid = lastPosition;
             gPos.SynchronizeGridPosition();
         }
-        selectedCharacter.hasMoved = false;  // 把移动状态重置一下
+
+        selectedCharacter.hasMoved = false; // 把移动状态重置一下
         uiManager.HideMsgDlg();
         uiManager.HideBattlePreviewPanel();
         uiManager.ClearAllRange();
@@ -748,24 +756,27 @@ public class GameManager : MonoBehaviour
     // }
 
     /// <summary>
-    /// 检查周围是否有可攻击或治疗的对象
+    /// 检查攻击范围内是否有可攻击或治疗的对象
     /// </summary>
-    private byte CheckAbilities(CharacterObject selectedCharacterObject)
+    public byte CheckAbilities(CharacterObject selectedCharacterObject)
     {
-        List<Vector2Int> currMoveRange = new List<Vector2Int>();  // 移动完之后 只能以它自己脚下那一格为移动范围去搜索范围
-        Vector2Int currPos = selectedCharacterObject.gameObject.GetComponent<GridPosition>().grid;  // 当前位置
+        List<Vector2Int> currMoveRange = new List<Vector2Int>(); // 移动完之后 只能以它自己脚下那一格为移动范围去搜索范围
+        Vector2Int currPos = selectedCharacterObject.gameObject.GetComponent<GridPosition>().grid; // 当前位置
         currMoveRange.Add(currPos);
         byte targets = 0b0;
 
-        List<CoveredRange> currRange = selectedCharacterObject.gameObject.GetComponent<CharacterAttack>().GetWeaponRange(currPos, mapGenerator.mapSize);
+        List<CoveredRange> currRange = selectedCharacterObject.gameObject.GetComponent<CharacterAttack>()
+            .GetWeaponRange(currPos, mapGenerator.mapSize);
         foreach (CoveredRange range in currRange)
         {
             SelectedCharacterInfo selectedCharacterInfo = GetCharacterInSelectedGrid(range.gridPos);
             if (selectedCharacterInfo.IsNull() == false)
             {
-                byte relation = selectedCharacterObject.GetRelation(characters[selectedCharacterInfo.playerIndex][selectedCharacterInfo.characterIndex]);
+                byte relation =
+                    selectedCharacterObject.GetRelation(
+                        characters[selectedCharacterInfo.playerIndex][selectedCharacterInfo.characterIndex]);
                 targets |= (byte)(relation & range.targetType);
-            }          
+            }
         }
 
         return targets;
@@ -776,7 +787,7 @@ public class GameManager : MonoBehaviour
     /// </summary>     
     private bool CheckExchangeItemAbility()
     {
-        return false;  // debug用 一会删
+        return false; // debug用 一会删
     }
 
     /// <summary>
@@ -784,9 +795,9 @@ public class GameManager : MonoBehaviour
     /// </summary>       
     private bool CheckAccessBackupAbility()
     {
-        return false;  // debug用 一会删
+        return false; // debug用 一会删
     }
-         
+
 
     private List<Vector2Int> GetOccupiedGrids(SelectedCharacterInfo currentCharacter)
     {
@@ -801,6 +812,7 @@ public class GameManager : MonoBehaviour
                 }
             }
         }
+
         return occupiedGrids;
     }
 
@@ -817,6 +829,7 @@ public class GameManager : MonoBehaviour
                 }
             }
         }
+
         return allyGrids;
     }
 
@@ -830,7 +843,7 @@ public class GameManager : MonoBehaviour
             characters[i] = new List<CharacterObject>();
         }
 
-        List<int> tempPlayers = new List<int>();  // temp players 
+        List<int> tempPlayers = new List<int>(); // temp players 
         tempPlayers.Add(5);
         tempPlayers.Add(8);
         CreateAllCharacters(tempPlayers);
@@ -841,10 +854,11 @@ public class GameManager : MonoBehaviour
     //判断选中的位置是什么东西
     private SelectedCharacterInfo GetCharacterInSelectedGrid(Vector2Int gridPosition)
     {
-
         for (int currPlayerIndex = 0; currPlayerIndex < playerCount; currPlayerIndex++)
         {
-            for (int currCharacterIndex = 0; currCharacterIndex < characters[currPlayerIndex].Count; currCharacterIndex++)
+            for (int currCharacterIndex = 0;
+                 currCharacterIndex < characters[currPlayerIndex].Count;
+                 currCharacterIndex++)
             {
                 if (characters[currPlayerIndex][currCharacterIndex].gPos.grid == gridPosition)
                 {
@@ -854,7 +868,6 @@ public class GameManager : MonoBehaviour
         }
 
         return new SelectedCharacterInfo(Constants.nullPlayerIndex, Constants.nullCharacterIndex);
-
     }
 
     private SelectedMovePos GetSelectedMoveInfo(Vector2Int selectedGridPos)
@@ -878,7 +891,7 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        List<DijkstraMoveInfo> currentMoveRange = movementManager.LogicMoveRange;  // 总觉得这么写会爆炸
+        List<DijkstraMoveInfo> currentMoveRange = movementManager.LogicMoveRange; // 总觉得这么写会爆炸
         for (int i = 0; i < currentMoveRange.Count; i++)
         {
             if (selectedGridPos == currentMoveRange[i].position)
@@ -888,7 +901,6 @@ public class GameManager : MonoBehaviour
         }
 
         return SelectedMovePos.unmoveable;
-
     }
 
 
@@ -920,7 +932,6 @@ public class GameManager : MonoBehaviour
         }
 
         return allDrawGrids;
-
     }
 
     private void CreateAllCharacters(List<int> playersAndCount)
@@ -943,18 +954,17 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void CreateCharacter(string prefabPath, int playerIndex, Vector2Int gridPosition,string id)
+    private void CreateCharacter(string prefabPath, int playerIndex, Vector2Int gridPosition, string id)
     {
-        // todo 在这里使用loadedCharacterStatus这个填表数据
         GameObject character = Instantiate<GameObject>(Resources.Load<GameObject>(prefabPath));
 
         if (character == null) return;
 
         character.transform.SetParent(transform);
         character.GetComponent<CharacterObject>().Status = GameData.characterStatusDict[id];
-        
-        
-            GridPosition gPos = character.GetComponent<GridPosition>();
+
+
+        GridPosition gPos = character.GetComponent<GridPosition>();
         if (gPos != null)
         {
             gPos.grid = gridPosition;
@@ -972,14 +982,17 @@ public class GameManager : MonoBehaviour
         CharacterAttack attack = character.GetComponent<CharacterAttack>();
         if (attack != null)
         {
-            attack.AddWeapon(new WeaponObj(1, 1, 2, Constants.TargetType_Foe, WeaponType.DoubleAttack, "targetFoe", 20, "iconPath"));
+            attack.AddWeapon(new WeaponObj(1, 1, 2, Constants.TargetType_Foe, WeaponType.DoubleAttack, "targetFoe", 20,
+                "iconPath"));
             attack.weaponCurIndex = 0;
             //todo 治疗相关的战斗逻辑没写 是治疗武器的话 数值怎么计算 血量上限的计算
-            attack.AddWeapon(new WeaponObj(1, 1, 1, Constants.TargetType_Ally, WeaponType.NormalAttack, "targetAlly", 20, "iconPath"));
+            attack.AddWeapon(new WeaponObj(1, 1, 1, Constants.TargetType_Ally, WeaponType.NormalAttack, "targetAlly",
+                20, "iconPath"));
         }
 
         CharacterObject characterObject = character.GetComponent<CharacterObject>();
-        characterObject.characterName = GameData.characterNameModel.names[Random.Range(0, GameData.characterNameModel.names.Count)];  // todo 不一定是对的
+        characterObject.characterName =
+            GameData.characterNameModel.names[Random.Range(0, GameData.characterNameModel.names.Count)];
         characters[playerIndex].Add(characterObject);
     }
 
@@ -994,7 +1007,7 @@ public class GameManager : MonoBehaviour
             selectedCharacter.gPos.grid, mapGenerator.mapSize,
             characterAttack.Weapons[characterAttack.weaponCurIndex].target
         );
-                    
+
         if (currAttackRange.Count > 0)
         {
             uiManager.ClearAllRange();
@@ -1010,7 +1023,7 @@ public class GameManager : MonoBehaviour
         BattleInputInfo battleInputInfo = new BattleInputInfo();
         battleInputInfo.attacker = characters[attacker.playerIndex][attacker.characterIndex];
         battleInputInfo.defender = characters[defender.playerIndex][defender.characterIndex];
-        battleInputInfo.attackerWeapon = characters[attacker.playerIndex][attacker.characterIndex].attack.Weapons[0];  
+        battleInputInfo.attackerWeapon = characters[attacker.playerIndex][attacker.characterIndex].attack.Weapons[0];
         battleInputInfo.defenderWeapon = characters[defender.playerIndex][defender.characterIndex].attack.Weapons[0];
         battleInputInfo.attackerPos = new Vector2Int(
             characters[attacker.playerIndex][attacker.characterIndex].gPos.grid.x,
@@ -1029,16 +1042,13 @@ public class GameManager : MonoBehaviour
             battleInputInfo.defenderPos.y
         ].percentageModifier;
         battleInputInfo.isSameSide = attacker.playerIndex == defender.playerIndex;
-        
-        battleManager.StartBattle(battleInputInfo);  
 
-        msgDlgButtonInfos = GetWeaponBattlePreviewInfos(selectedCharacter.attack);  // 武器选择功能
+        battleManager.StartBattle(battleInputInfo);
+
+        msgDlgButtonInfos = GetWeaponBattlePreviewInfos(selectedCharacter.attack); // 武器选择功能
         uiManager.ShowMsgDlg(msgDlgButtonInfos);
-                                
-        uiManager.ShowBattlePreviewPanel(battleManager.SingleBattleInfo);  // 攻击预览
+
+        uiManager.ShowBattlePreviewPanel(battleManager.SingleBattleInfo); // 攻击预览
         ChangeGameState(GameControlState.ConfirmWeapon); // 确认使用的攻击武器 这得跳一下状态 不然不会刷新
-        
     }
-
-
 }
