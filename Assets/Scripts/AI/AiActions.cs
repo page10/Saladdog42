@@ -4,6 +4,12 @@ using UnityEngine;
 
 public static class AiActions
 {
+    public static Dictionary<string,AIAction> AIActionsDict = new Dictionary<string, AIAction>()
+    {
+        {"moveToNearestEnemy",moveToNearestEnemy},
+        {"attackEnemy",attackEnemy}
+    };
+
     /// <summary>
     /// 移动到攻击范围内最近的敌人
     /// </summary>

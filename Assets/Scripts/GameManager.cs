@@ -414,6 +414,7 @@ public class GameManager : MonoBehaviour
                     ChangeGameState(GameControlState.CharacterActionDone);
                     selectedCharacter.animator.FinishAction();
                 }
+                // 要加判断 是敌人的回合还是我的回合播的动画 这两个后续的跳转是不同的
             }
                 break;
             case GameControlState.CharacterActionDone: // 它的语义是 这回合行动结束
@@ -444,33 +445,81 @@ public class GameManager : MonoBehaviour
                 // 敌方回合开始
                 // 挨个判断各单位是否可以移动 是否可以攻击
                 // 可以移动的话 遍历aiClips有没有可以执行的 有就立刻执行 没有就跳过
-                // 可以移动的话 找是不是有可执行的攻击条件 有就执行 没有结束
+                // 可以攻击的话 找是不是有可执行的攻击条件 有就执行 没有结束
                 // 还要有一个敌人回合选敌人的状态
 
+                Debug.Log("EnemyTurn started!____________________");
+
                 // for 循环 得到selectedCharacter是谁 如果for走完了 就进入endTurn
-                for (int i = 0; i < characters[currentPlayerIndex].Count; i++)
+                // for (int i = 0; i < characters[currentPlayerIndex].Count; i++)
+                // {
+                //     // 判断这个角色是否可以移动
+                //     if (characters[currentPlayerIndex][i].hasMoved == false)
+                //     {
+                //         selectedCharacter = characters[currentPlayerIndex][i];
+                //         
+                //         if (selectedCharacter.characterAi)
+                //         {
+                //             // 遍历移动相关的aiclips列表找到第一个可执行的aiclip
+                //             AIClip moveAI = selectedCharacter.characterAi.GetAvailableMoveAI(selectedCharacter);
+                //
+                //             // 执行moveAI中的各个actions
+                //             selectedCharacter.characterAi.ExecuteAI(moveAI);
+                //             continue;
+                //         }
+                //     }
+                //     else if (characters[currentPlayerIndex][i].hasAttacked == false) // 判断这个角色是否可以攻击 如果可以就走攻击ai
+                //     {
+                //         selectedCharacter = characters[currentPlayerIndex][i];
+                //         // 遍历攻击相关的aiclips列表找有没有可以执行的
+                //         AIClip attackAI = selectedCharacter.characterAi.GetAvailableAttackAI(selectedCharacter);
+                //         // 执行attackAI中的各个actions
+                //         selectedCharacter.characterAi.ExecuteAI(attackAI);
+                //         continue;
+                //     }
+                // }
+                //todo 0526 写ai 要怎么控制战斗 跳转状态 敌人不需要把攻击动画和移动动画分开放状态 把敌人会干的事情设计出来 
+
+                int enemyIndex = 0;
+                while (enemyIndex < characters[currentPlayerIndex].Count)
                 {
-                    // 判断这个角色是否可以移动
-                    if (characters[currentPlayerIndex][i].hasMoved == false)
+                    if (characters[currentPlayerIndex][enemyIndex].characterAi)
                     {
-                        selectedCharacter = characters[currentPlayerIndex][i];
-                        
-                        if (selectedCharacter.characterAi)
+                        if (characters[currentPlayerIndex][enemyIndex].hasMoved == false)
                         {
+                            selectedCharacter = characters[currentPlayerIndex][enemyIndex];
                             // 遍历移动相关的aiclips列表找到第一个可执行的aiclip
                             AIClip moveAI = selectedCharacter.characterAi.GetAvailableMoveAI(selectedCharacter);
-
                             // 执行moveAI中的各个actions
                             selectedCharacter.characterAi.ExecuteAI(moveAI);
-                            break;
+                            characters[currentPlayerIndex][enemyIndex].hasMoved = true;
+                        }
+                        else if (characters[currentPlayerIndex][enemyIndex].hasAttacked == false)
+                        {
+                            selectedCharacter = characters[currentPlayerIndex][enemyIndex];
+                            AIClip attackAI = selectedCharacter.characterAi.GetAvailableAttackAI(selectedCharacter);
+                            // 执行attackAI中的各个actions
+                            selectedCharacter.characterAi.ExecuteAI(attackAI);
+                            characters[currentPlayerIndex][enemyIndex].hasAttacked = true;
+                            
+                        }
+
+                        if ((characters[currentPlayerIndex][enemyIndex].hasMoved) &&
+                            (characters[currentPlayerIndex][enemyIndex].hasAttacked))
+                        {
+                            enemyIndex++;   
                         }
                     }
-                    else if (characters[currentPlayerIndex][i].hasAttacked == false)
+                    else
                     {
-                        selectedCharacter = characters[currentPlayerIndex][i];
-                        // 遍历攻击相关的aiclips列表找有没有可以执行的
+                        enemyIndex++;
                     }
+                    
+                    
                 }
+
+                
+                ChangeGameState(GameControlState.EndTurn);
             }
                 break;
             case GameControlState.EndTurn:
@@ -526,6 +575,8 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private List<MsgDlgButtonInfo> GetMsgDlgButtonInfos()
     {
+        // todo 加结束我方回合的按钮
+         
         List<MsgDlgButtonInfo> currentMsgDlgButtonInfos = new List<MsgDlgButtonInfo>();
         byte abilities = CheckAbilities(selectedCharacter);
         bool canExchangeItem = CheckExchangeItemAbility(); // 这个还没写
@@ -556,6 +607,7 @@ public class GameManager : MonoBehaviour
         currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("Wait", WaitCommand, Array.Empty<object>()));
         currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("Inventory", InventoryCommand, Array.Empty<object>()));
         currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("Cancel", CancelCommand, Array.Empty<object>()));
+        currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("EndTurn", EndTurnCommand, Array.Empty<object>()));
 
 
         return currentMsgDlgButtonInfos;
@@ -747,6 +799,18 @@ public class GameManager : MonoBehaviour
         uiManager.HideBattlePreviewPanel();
         uiManager.ClearAllRange();
         ChangeGameState(GameControlState.SelectCharacter);
+    }
+    
+    /// <summary>
+    /// 结束我方回合
+    /// </summary>
+    /// <param name="args"></param>
+    private void EndTurnCommand(object[] args)
+    {
+        uiManager.HideMsgDlg();
+        uiManager.HideBattlePreviewPanel();
+        uiManager.ClearAllRange();
+        ChangeGameState(GameControlState.EndTurn);
     }
 
     // private void DebugLogEvent(string eventData)  // 测试时候用的函数 打个log
