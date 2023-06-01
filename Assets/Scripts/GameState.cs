@@ -52,4 +52,9 @@ public static class GameState
     {
         return gameManager.CheckAbilities(selectedCharacterObject);  // CheckAbilities 是用来检查攻击范围内是不是有对象的
     }
+    
+    public static List<CharacterObject> GetAttackableCharacterObjects(CharacterObject selectedCharacterObject)
+    {
+        return gameManager.GetAttackableCharacterObjects(selectedCharacterObject);
+    }
 }

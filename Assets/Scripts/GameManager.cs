@@ -478,7 +478,7 @@ public class GameManager : MonoBehaviour
                 //         continue;
                 //     }
                 // }
-                //todo 0526 写ai 要怎么控制战斗 跳转状态 敌人不需要把攻击动画和移动动画分开放状态 把敌人会干的事情设计出来 
+                // todo 0526 写ai 要怎么控制战斗 跳转状态 敌人不需要把攻击动画和移动动画分开放状态 把敌人会干的事情设计出来 
 
                 int enemyIndex = 0;
                 while (enemyIndex < characters[currentPlayerIndex].Count)
@@ -1114,5 +1114,11 @@ public class GameManager : MonoBehaviour
 
         uiManager.ShowBattlePreviewPanel(battleManager.SingleBattleInfo); // 攻击预览
         ChangeGameState(GameControlState.ConfirmWeapon); // 确认使用的攻击武器 这得跳一下状态 不然不会刷新
+    }
+
+    public List<CharacterObject> GetAttackableCharacterObjects(CharacterObject selectedCharacterObject)
+    {
+        
+        return new List<CharacterObject>();
     }
 }

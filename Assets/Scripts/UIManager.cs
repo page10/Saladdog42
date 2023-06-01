@@ -27,6 +27,12 @@ public class UIManager : MonoBehaviour
 
     }
 
+    /// <summary>
+    /// 所有的武器覆盖范围 包括攻击和治疗
+    /// </summary>
+    /// <param name="characterAttack"></param>
+    /// <param name="moveRange"></param>
+    /// <param name="mapSize"></param>
     private void GetCoveredRange(CharacterAttack characterAttack, List<Vector2Int> moveRange, Vector2Int mapSize)
     {
         logicCoverRange.Clear();

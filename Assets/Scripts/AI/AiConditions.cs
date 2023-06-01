@@ -8,7 +8,8 @@ public static class AiConditions
     public static Dictionary<string, AICondition> AIConditionsDict = new Dictionary<string, AICondition>()
     {
         // 每加一个脚本就要在这里注册
-        {"hasAttackableEnemy",hasAttackableEnemy}
+        {"hasAttackableEnemy",hasAttackableEnemy},
+        {"hasAttackableAlly",hasAttackableAlly}
     };
     /// <summary>
     /// 判定攻击范围内是不是有敌人
@@ -18,7 +19,15 @@ public static class AiConditions
     public static bool hasAttackableEnemy(CharacterObject characterObj)
     {
         return (GameState.GetAttackableCharacters(characterObj)|Constants.TargetType_Foe) != 0;
-        
-
+    }
+    
+    /// <summary>
+    /// 判定治疗范围内是否有可以治疗的队友
+    /// </summary>
+    /// <param name="characterObj"></param>
+    /// <returns></returns>
+    public static bool hasAttackableAlly(CharacterObject characterObj)
+    {
+        return (GameState.GetAttackableCharacters(characterObj)|Constants.TargetType_Ally) != 0;
     }
 }
