@@ -17,12 +17,12 @@ public class GameManager : MonoBehaviour
     private List<CharacterObject>[] characters; // all rabbits(characters)
     private CharacterObject selectedCharacter; // selected character
     private GameObject currEnemy; //当前选中的敌人
-    private MapGenerator mapGenerator;
+    public MapGenerator mapGenerator { get; private set; }
     private UIManager uiManager;
     private Vector2 currMousePosition; // 当前鼠标位置
 
     //战斗相关
-    private BattleManager battleManager;
+    public BattleManager battleManager { get; private set; }
     private SelectedCharacterInfo currSelectedEnemy; // 当前选中的敌方角色
     private SelectedCharacterInfo attacker; // 当前选中的我方角色
     private SelectedCharacterInfo defender; // 当前选中的敌方角色
@@ -492,6 +492,7 @@ public class GameManager : MonoBehaviour
                             AIClip moveAI = selectedCharacter.characterAi.GetAvailableMoveAI(selectedCharacter);
                             // 执行moveAI中的各个actions
                             selectedCharacter.characterAi.ExecuteAI(moveAI);
+                            // 
                             characters[currentPlayerIndex][enemyIndex].hasMoved = true;
                         }
                         else if (characters[currentPlayerIndex][enemyIndex].hasAttacked == false)
@@ -1116,9 +1117,45 @@ public class GameManager : MonoBehaviour
         ChangeGameState(GameControlState.ConfirmWeapon); // 确认使用的攻击武器 这得跳一下状态 不然不会刷新
     }
 
+    /// <summary>
+    /// 给ai用 拿到附近可以攻击的角色characterObject 这里使用的武器是当前选中的武器
+    /// </summary>
+    /// <param name="selectedCharacterObject"></param>
+    /// <returns></returns>
     public List<CharacterObject> GetAttackableCharacterObjects(CharacterObject selectedCharacterObject)
     {
+        List<CharacterObject> attackableCharacterObjects = new List<CharacterObject>();
         
-        return new List<CharacterObject>();
+        // attack range, according to current weapon
+        List<Vector2Int> attackableGrids = selectedCharacterObject.attack.GetAttackRange(
+            selectedCharacterObject.gPos.grid, mapGenerator.mapSize,
+            selectedCharacterObject.attack.Weapons[selectedCharacterObject.attack.weaponCurIndex].target
+        );
+        
+        foreach (Vector2Int grid in attackableGrids)
+        {
+            for (int i = 0; i < characters.Length; i++)
+            {
+                if (i == selectedCharacterObject.slaveTo.masterPlayerIndex) continue;
+                foreach (CharacterObject characterObject in characters[i])
+                {
+                    if (characterObject.gPos.grid == grid)
+                    {
+                        attackableCharacterObjects.Add(characterObject);
+                    }
+                }
+            }
+            
+            // healing allys 
+            // foreach (CharacterObject characterObject in characters[selectedCharacterObject.slaveTo.masterPlayerIndex])
+            // {
+            //     if (characterObject.gPos.grid == grid)
+            //     {
+            //         attackableCharacterObjects.Add(characterObject);
+            //     }
+            // }
+        }
+
+        return attackableCharacterObjects;
     }
 }

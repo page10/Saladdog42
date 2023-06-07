@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Structs;
 using UnityEngine;
 
 public enum GameControlState
@@ -37,6 +38,12 @@ public enum GameControlState
     CharacterActionDone, 
     EnemyTurn,
     EndTurn,
+    /// <summary>
+    /// 敌方攻击动画
+    /// 如果播放动画结束就回到「EnemyTurn」 进行下一个人的逻辑
+    /// 也许可以加一个按键跳过的功能
+    /// </summary>
+    EnemyAnimation,
 }
 public static class GameState 
 {
@@ -53,8 +60,14 @@ public static class GameState
         return gameManager.CheckAbilities(selectedCharacterObject);  // CheckAbilities 是用来检查攻击范围内是不是有对象的
     }
     
+    /// <summary>
+    /// 拿到当前使用的武器攻击范围内所有敌方对象
+    /// </summary>
+    /// <param name="selectedCharacterObject"></param>
+    /// <returns></returns>
     public static List<CharacterObject> GetAttackableCharacterObjects(CharacterObject selectedCharacterObject)
     {
         return gameManager.GetAttackableCharacterObjects(selectedCharacterObject);
     }
+    
 }

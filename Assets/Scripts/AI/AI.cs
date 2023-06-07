@@ -54,7 +54,7 @@ using UnityEngine;
         }
 
         /// <summary>
-        /// 找到并返回第一个可用的aiclips
+        /// 找到并返回第一个可用的aiclip
         /// </summary>
         public AIClip GetAvailableMoveAI(CharacterObject characterObj)
         {
