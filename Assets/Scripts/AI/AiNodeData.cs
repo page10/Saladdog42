@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // 这部分的结构 对应ai实现时候各个函数所需要的参数
+// 这部分只负责「要干什么」 至于「获取某个信息」不应该是它在干
+// 而没有 筛选敌人 判断背包里有没有能吃的东西 这类应该是脑子 应该是aiAction里 aiAction里是思考我要干什么 并且由gameManager发布指令
 
 
 /// <summary>
@@ -14,26 +16,22 @@ public struct MoveToGrid
     public Vector2Int Grid;
 }
 
-public struct MoveToEnemy
-{
-    public CharacterObject Character;
-    public CharacterObject Enemy;
-}
-
-public struct GetLowestHpEnemy
-{
-    public CharacterObject[] Enemies;
-}
 
 /// <summary>
-/// todo 0608 不应该把「找敌人」和「向敌人发起攻击」分开写吧
-/// 这样的话找到的那个敌人不知道该怎么传诶 看起来目前的结构就没法传了
-/// 应该「找到最近的人并攻击」在这里是一个struct 对应到ai实现时候是一个完整的函数
+/// 攻击或治疗某个目标
+/// 先写成武器index吧 之后可能写成武器weaponObj（似乎没有index好）
 /// </summary>
-public struct GetNearstEnemy
+public struct AttackOrHeal
 {
-    public CharacterObject[] Enemies;
+    public CharacterObject Character;
+    public CharacterObject Target;
+    /// <summary>
+    /// 使用的武器index
+    /// </summary>
+    public int WeaponIndex;  
 }
+
+// 如果还有什么行为就接着加
 
 /// <summary>
 /// 生成AiNode所用的数据
