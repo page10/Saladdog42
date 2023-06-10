@@ -71,14 +71,9 @@ public static class AiActions
         selectedCharacterObject.hasAttacked = true;  // 攻击完了 改一下标签
         
         
-        
-        
         // 在玩家阶段 这里跳转到了一个PlayBattleAnimation的状态
         // 对于敌人 应该也有一个播动画的状态但不是和玩家这个一样的东西
         
-
-
-    
 
     }
 

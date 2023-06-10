@@ -12,8 +12,14 @@ using UnityEngine;
 /// </summary>
 public struct MoveToGrid
 {
+    /// <summary>
+    /// 要移动的那个角色
+    /// </summary>
     public CharacterObject Character;
-    public Vector2Int Grid;
+    /// <summary>
+    /// 移动路径 每个节点
+    /// </summary>
+    public Vector2Int[] Nodes;
 }
 
 
