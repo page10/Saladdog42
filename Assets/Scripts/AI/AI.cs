@@ -25,12 +25,16 @@ using UnityEngine;
                 aiClip.Actions = new List<AIAction>();
                 for (int j = 0; j < moveAiClipsData[i].Conditions.Count; j++)
                 {
-                    aiClip.Conditions.Add(AiConditions.AIConditionsDict[moveAiClipsData[i].Conditions[j]]);
+                    //做个no null判断
+                    if (AiConditions.AIConditionsDict.ContainsKey(moveAiClipsData[i].Conditions[j]))
+                        aiClip.Conditions.Add(AiConditions.AIConditionsDict[moveAiClipsData[i].Conditions[j]]);
                 }
 
                 for (int j = 0; j < moveAiClipsData[i].Actions.Count; j++)
                 {
-                    aiClip.Actions.Add(AiActions.AIActionsDict[moveAiClipsData[i].Actions[j]]);
+                    //做个no null判断
+                    if (AiActions.AIActionsDict.ContainsKey(moveAiClipsData[i].Actions[j]))
+                        aiClip.Actions.Add(AiActions.AIActionsDict[moveAiClipsData[i].Actions[j]]);
                 }
                 _moveAiClips.Add(aiClip);
             }
@@ -42,12 +46,16 @@ using UnityEngine;
                 aiClip.Actions = new List<AIAction>();
                 for (int j = 0; j < attackAiClipsData[i].Conditions.Count; j++)
                 {
-                    aiClip.Conditions.Add(AiConditions.AIConditionsDict[attackAiClipsData[i].Conditions[j]]);
+                    //做个no null判断
+                    if (AiConditions.AIConditionsDict.ContainsKey(moveAiClipsData[i].Conditions[j]))
+                        aiClip.Conditions.Add(AiConditions.AIConditionsDict[attackAiClipsData[i].Conditions[j]]);
                 }
 
                 for (int j = 0; j < attackAiClipsData[i].Actions.Count; j++)
                 {
-                    aiClip.Actions.Add(AiActions.AIActionsDict[attackAiClipsData[i].Actions[j]]);
+                    //做个no null判断
+                    if (AiActions.AIActionsDict.ContainsKey(moveAiClipsData[i].Actions[j]))
+                        aiClip.Actions.Add(AiActions.AIActionsDict[attackAiClipsData[i].Actions[j]]);
                 }
                 _attackAiClips.Add(aiClip);
             }
@@ -148,9 +156,9 @@ using UnityEngine;
     }
 // todo 先写死一套ai逻辑绑在敌人身上 大概就是 如果攻击范围内有敌人 就移动并攻击血量最少的敌人 否则待机
 
-    public delegate bool AICondition(CharacterObject characterObj);
+    public delegate bool AICondition(in CharacterObject characterObj);
 
-    public delegate AiNodeData AIAction(CharacterObject characterObj);
+    public delegate AiNodeData AIAction(in CharacterObject characterObj);
 
     [Serializable]
     public struct AIClipData  // 用来读填表数据

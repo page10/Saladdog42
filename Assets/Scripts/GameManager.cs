@@ -863,7 +863,11 @@ public class GameManager : MonoBehaviour
         return false; // debug用 一会删
     }
 
-
+    /// <summary>
+    /// 获得被其他人占领的格子，不能路过的那种
+    /// </summary>
+    /// <param name="currentCharacter"></param>
+    /// <returns></returns>
     private List<Vector2Int> GetOccupiedGrids(SelectedCharacterInfo currentCharacter)
     {
         List<Vector2Int> occupiedGrids = new List<Vector2Int>();
@@ -881,6 +885,28 @@ public class GameManager : MonoBehaviour
         return occupiedGrids;
     }
 
+    private List<Vector2Int> GetOccupiedGrids(CharacterObject currentCharacter)
+    {
+        List<Vector2Int> occupiedGrids = new List<Vector2Int>();
+        for (int i = 0; i < characters.Length; i++)
+        {
+            for (int j = 0; j < characters[i].Count; j++)
+            {
+                if (i != currentCharacter.slaveTo.masterPlayerIndex)
+                {
+                    occupiedGrids.Add(characters[i][j].gPos.grid);
+                }
+            }
+        }
+
+        return occupiedGrids;
+    }
+
+    /// <summary>
+    /// 我的所有盟军所在的格子
+    /// </summary>
+    /// <param name="currentCharacter"></param>
+    /// <returns></returns>
     private List<Vector2Int> GetAllyGrids(SelectedCharacterInfo currentCharacter)
     {
         List<Vector2Int> allyGrids = new List<Vector2Int>();
@@ -889,6 +915,23 @@ public class GameManager : MonoBehaviour
             for (int j = 0; j < characters[i].Count; j++)
             {
                 if (i == currentCharacter.playerIndex && j != currentCharacter.characterIndex)
+                {
+                    allyGrids.Add(characters[i][j].gPos.grid);
+                }
+            }
+        }
+
+        return allyGrids;
+    }
+    
+    private List<Vector2Int> GetAllyGrids(CharacterObject currentCharacter)
+    {
+        List<Vector2Int> allyGrids = new List<Vector2Int>();
+        for (int i = 0; i < characters.Length; i++)
+        {
+            for (int j = 0; j < characters[i].Count; j++)
+            {
+                if (i == currentCharacter.slaveTo.masterPlayerIndex && characters[i][j] != currentCharacter)
                 {
                     allyGrids.Add(characters[i][j].gPos.grid);
                 }
@@ -1157,5 +1200,63 @@ public class GameManager : MonoBehaviour
         }
 
         return attackableCharacterObjects;
+    }
+
+    /// <summary>
+    /// 找到我所有的敌人
+    /// </summary>
+    /// <param name="me"></param>
+    /// <returns></returns>
+    public List<CharacterObject> AllEnemies(CharacterObject me)
+    {
+        List<CharacterObject> res = new List<CharacterObject>();
+        for (int i = 0; i < characters.Length; i++)
+        {
+            if (i != me.slaveTo.masterPlayerIndex)
+            {
+                res.AddRange(characters[i]);
+            }
+        }
+
+        return res;
+    }
+
+    /// <summary>
+    /// 单元格是否被占领
+    /// </summary>
+    /// <param name="x"></param>
+    /// <param name="y"></param>
+    /// <returns></returns>
+    public bool GridOccupied(int x, int y)
+    {
+        foreach (List<CharacterObject> characterObjects in characters)
+        {
+            foreach (CharacterObject o in characterObjects)
+            {
+                if (o.gPos.grid.x == x && o.gPos.grid.y == y)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 我能移动到的单元格
+    /// </summary>
+    /// <param name="me"></param>
+    /// <returns></returns>
+    public List<Vector2Int> CanMoveToGrids(CharacterObject me)
+    {
+        List<Vector2Int> res = new List<Vector2Int>();
+        List<DijkstraMoveInfo> found = movementManager.GetMoveRange(
+            me, GetOccupiedGrids(me), GetAllyGrids(me));
+        foreach (DijkstraMoveInfo info in found)
+        {
+            if (!res.Contains(info.position))
+                res.Add(info.position);
+        }
+
+        return res;
     }
 }

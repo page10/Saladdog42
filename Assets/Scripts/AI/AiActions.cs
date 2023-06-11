@@ -21,12 +21,26 @@ public static class AiActions
     /// 移动到攻击范围内最近的敌人
     /// </summary>
     /// <param name="characterObj">移动执行者</param>
-    public static AiNodeData moveToNearestEnemy(CharacterObject characterObj)
+    public static AiNodeData moveToNearestEnemy(in CharacterObject characterObj)
     {
         Debug.Log("move to nearest enemy!");
-        characterObj.hasMoved = true;
-        Vector2Int[] nodes = new Vector2Int[3];
-        AiNodeData aiNodeData = new AiNodeData(new MoveToGrid(characterObj, nodes), new List<AiNodeData>());
+        
+        //characterObj.hasMoved = true; //不能在这里做，因为这是要执行的事情
+
+        //得到所有敌人
+        List<CharacterObject> enemies = GameState.gameManager.AllEnemies(characterObj);
+        //得到我能走到的范围
+        List<Vector2Int> myGrids = GameState.gameManager.CanMoveToGrids(characterObj);
+
+        //得出最近的一个
+        int distance = int.MaxValue;
+        Vector2Int targetGrid = characterObj.gPos.grid;
+        foreach (CharacterObject enemy in enemies)
+        {
+            //todo 筛选出我能走到的最近的格子
+        }
+        
+        AiNodeData aiNodeData = new AiNodeData(new MoveToGrid(characterObj, targetGrid), new List<AiNodeData>());
         return aiNodeData;
     }
 
@@ -34,7 +48,7 @@ public static class AiActions
     /// 攻击敌人
     /// </summary>
     /// <param name="characterObj">攻击执行者</param>
-    public static AiNodeData attackEnemy(CharacterObject selectedCharacterObject)
+    public static AiNodeData attackEnemy(in CharacterObject selectedCharacterObject)
     {
         //todo 0607 差一个aiNode结构 在这个函数里只应该生成node信息 然后gamemanager里另外有一个去执行这些node里函数的东西
         // 拿到所有的可攻击敌人 根据当前的武器

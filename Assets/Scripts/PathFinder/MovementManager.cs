@@ -45,9 +45,41 @@ public class MovementManager : MonoBehaviour
         GridPosition position = characterMove.GetComponent<GridPosition>();
         Vector2Int pos = position ? position.grid : Vector2Int.zero;
         _logicMoveRange = characterMove.GetDijkstraRange(pos);
+    }
+    
+    /// <summary>
+    /// 获得一个角色可以移动到的所有单元格
+    /// </summary>
+    /// <param name="character">角色</param>
+    /// <param name="occupiedGrids">已经被他的敌人占领的格子</param>
+    /// <param name="allyGrids">友军所在的格子</param>
+    public List<DijkstraMoveInfo> GetMoveRange(CharacterObject character, List<Vector2Int> occupiedGrids, List<Vector2Int> allyGrids)
+    {
+        CharacterMovement characterMove = character.gameObject.GetComponent<CharacterMovement>();
+        List<DijkstraMoveInfo> res = new List<DijkstraMoveInfo>();
+        if (!_mapGenerator || !characterMove) return res;
 
+        //_movingCharacter = character.gameObject.GetComponent<GridPosition>();
 
-      
+        int width = _mapGenerator.Map.GetLength(0);
+        int height = _mapGenerator.Map.GetLength(1);
+        int[,] costMap = new int[width, height];
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                Vector2Int thisG = new Vector2Int(x, y);
+                costMap[x, y] = occupiedGrids.Contains(thisG) || allyGrids.Contains(thisG) ?
+                    int.MaxValue :
+                    _mapGenerator.Map[x, y].Cost(characterMove.movePower.moveType);
+            }
+        }
+        characterMove.SetCostMap(costMap);
+
+        GridPosition position = character.gameObject.GetComponent<GridPosition>();
+        Vector2Int pos = position ? position.grid : Vector2Int.zero;
+        return characterMove.GetDijkstraRange(pos);
+        
     }
 
     

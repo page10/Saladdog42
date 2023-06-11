@@ -16,7 +16,7 @@ public static class AiConditions
     /// </summary>
     /// <param name="characterObj">攻击执行者</param>
     /// <returns>攻击范围内是不是有敌人</returns>
-    public static bool hasAttackableEnemy(CharacterObject characterObj)
+    public static bool hasAttackableEnemy(in CharacterObject characterObj)
     {
         return (GameState.GetAttackableCharacters(characterObj)|Constants.TargetType_Foe) != 0;
     }
@@ -26,7 +26,7 @@ public static class AiConditions
     /// </summary>
     /// <param name="characterObj"></param>
     /// <returns></returns>
-    public static bool hasAttackableAlly(CharacterObject characterObj)
+    public static bool hasAttackableAlly(in CharacterObject characterObj)
     {
         return (GameState.GetAttackableCharacters(characterObj)|Constants.TargetType_Ally) != 0;
     }
