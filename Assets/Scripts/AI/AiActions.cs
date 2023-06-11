@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using Structs;
 using UnityEngine;
 
+/// <summary>
+/// gameManager调用了角色的AI（函数）返回得到aiNode，然后根据aiNode来执行
+/// </summary>
 public static class AiActions
 {
-
     public static Dictionary<string,AIAction> AIActionsDict = new Dictionary<string, AIAction>()
     {
         {"moveToNearestEnemy",moveToNearestEnemy},
@@ -14,21 +16,25 @@ public static class AiActions
         // {"GetAttackableCharacterObjects", GetAttackableCharacterObjects}  // aiAction应该是个完整的东西 不该是一小步 所以不应该有这个
     };
 
+    // 移动和攻击应该是要单写的 
     /// <summary>
     /// 移动到攻击范围内最近的敌人
     /// </summary>
     /// <param name="characterObj">移动执行者</param>
-    public static void moveToNearestEnemy(CharacterObject characterObj)
+    public static AiNodeData moveToNearestEnemy(CharacterObject characterObj)
     {
         Debug.Log("move to nearest enemy!");
         characterObj.hasMoved = true;
+        Vector2Int[] nodes = new Vector2Int[3];
+        AiNodeData aiNodeData = new AiNodeData(new MoveToGrid(characterObj, nodes), new List<AiNodeData>());
+        return aiNodeData;
     }
 
     /// <summary>
     /// 攻击敌人
     /// </summary>
     /// <param name="characterObj">攻击执行者</param>
-    public static void attackEnemy(CharacterObject selectedCharacterObject)
+    public static AiNodeData attackEnemy(CharacterObject selectedCharacterObject)
     {
         //todo 0607 差一个aiNode结构 在这个函数里只应该生成node信息 然后gamemanager里另外有一个去执行这些node里函数的东西
         // 拿到所有的可攻击敌人 根据当前的武器
@@ -74,7 +80,7 @@ public static class AiActions
         // 在玩家阶段 这里跳转到了一个PlayBattleAnimation的状态
         // 对于敌人 应该也有一个播动画的状态但不是和玩家这个一样的东西
         
-
+        
     }
 
     

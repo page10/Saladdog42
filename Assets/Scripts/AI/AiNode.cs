@@ -7,6 +7,7 @@ public class AiNode
     private AiPerform _aiPerform;  // ai执行的方法
     public readonly AiNodeData[] NextEvents;  // 接下来的ai事件
     
+
     /// <summary>
     /// 这个判断是否执行完成和动画那个不一样
     /// </summary>
@@ -17,9 +18,26 @@ public class AiNode
         // todo 这个和动画不一样 不是用时间判定的 可能得由node自己返回？
         return _aiPerform(args);
     }
+    
+    public AiNode(AiPerform aiPerform, AiNodeData[] nextEvents)
+    {
+        _aiPerform = aiPerform;
+        NextEvents = nextEvents;
+    }
+    
+    /// <summary>
+    /// 根据ai信息生成aiNode  
+    /// </summary>
+    /// <param name="data">ai执行内容信息</param>
+    /// <returns>生成的ainode</returns>
+    public static AiNode FromAiNodeData(AiNodeData data)
+    {
+        return new AiNode(GenAiPerform(data),data.NextEventDatas.ToArray());
+    }
+
     public static AiPerform GenAiPerform(AiNodeData data)
     {
-        // 移动 执行部分逻辑
+        // 移动 执行
         if (data.ThisEventData is MoveToGrid)  
         {
             MoveToGrid m = (MoveToGrid)data.ThisEventData;
@@ -50,7 +68,8 @@ public class AiNode
         if (data.ThisEventData is AttackOrHeal)
         {
             AttackOrHeal a = (AttackOrHeal)data.ThisEventData;
-            // 发起攻击 并且播动画
+            Debug.Log("attack or heal");
+            // todo 发起攻击 并且播动画
             return (parameters) => { return true; };
         }
 

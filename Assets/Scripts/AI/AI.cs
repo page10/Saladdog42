@@ -150,7 +150,7 @@ using UnityEngine;
 
     public delegate bool AICondition(CharacterObject characterObj);
 
-    public delegate void AIAction(CharacterObject characterObj);
+    public delegate AiNodeData AIAction(CharacterObject characterObj);
 
     [Serializable]
     public struct AIClipData  // 用来读填表数据

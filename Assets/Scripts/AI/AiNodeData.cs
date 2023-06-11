@@ -20,6 +20,12 @@ public struct MoveToGrid
     /// 移动路径 每个节点
     /// </summary>
     public Vector2Int[] Nodes;
+    
+    public MoveToGrid(CharacterObject character, Vector2Int[] nodes)
+    {
+        Character = character;
+        Nodes = nodes;
+    }
 }
 
 
