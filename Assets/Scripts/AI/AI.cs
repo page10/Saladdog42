@@ -62,7 +62,7 @@ using UnityEngine;
         }
 
         /// <summary>
-        /// 找到并返回第一个可用的aiclip
+        /// 判定各个aiClip的条件，找到并返回第一个可用的aiclip
         /// </summary>
         public AIClip GetAvailableMoveAI(CharacterObject characterObj)
         {
@@ -116,33 +116,10 @@ using UnityEngine;
         /// <param name="aiClip">要执行的那个aiClip</param>
         public void ExecuteAI(AIClip aiClip)
         {
+            if (aiClip.Actions == null) return;  // 如果没有可以执行的action就直接跳过
             for (int j = 0; j < aiClip.Actions.Count; j++)
             {
-                aiClip.Actions[j](character);
-            }
-        }
-
-        public void DoAI()
-        {
-            for (int i = 0; i < _moveAiClips.Count; i++)
-            {
-                bool meet = true;
-                foreach (AICondition aiCondition in _moveAiClips[i].Conditions)
-                {
-                    if (!aiCondition(character))
-                    {
-                        meet = false;
-                        break;
-                    };
-                }
-
-                if (meet)
-                {
-                    for (int j = 0; j < _moveAiClips[i].Actions.Count; j++)
-                    {
-                        _moveAiClips[i].Actions[j](character);
-                    }
-                }
+                aiClip.Actions[j](character);  // 逐条执行aiClip中的actions 里面是个AiAction这个delegate 也就是调用了AiActions里面的方法
             }
         }
 

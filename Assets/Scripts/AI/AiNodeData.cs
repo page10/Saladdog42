@@ -57,6 +57,13 @@ public struct AttackOrHeal: IAiActionData
     /// </summary>
     public int WeaponIndex;  
     
+    public AttackOrHeal(CharacterObject character, CharacterObject target, int weaponIndex)
+    {
+        Character = character;
+        Target = target;
+        WeaponIndex = weaponIndex;
+    }
+    
     //todo 
     public AiPerform GetPerform()
     {
@@ -68,10 +75,17 @@ public struct AttackOrHeal: IAiActionData
 
 /// <summary>
 /// 生成AiNode所用的数据
+/// 执行行为所需要的参数 和执行的方法
 /// </summary>
 public class AiNodeData
 {
+    /// <summary>
+    /// 要做的事情 包括参数和执行方法
+    /// </summary>
     public IAiActionData ThisEventData;
+    /// <summary>
+    /// 接下来的节点
+    /// </summary>
     public List<AiNodeData> NextEventDatas;
     
     public AiNodeData(IAiActionData thisEventData, List<AiNodeData> nextEventDatas)

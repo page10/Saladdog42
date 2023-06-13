@@ -478,37 +478,38 @@ public class GameManager : MonoBehaviour
                 //         continue;
                 //     }
                 // }
-                // todo 0526 写ai 要怎么控制战斗 跳转状态 敌人不需要把攻击动画和移动动画分开放状态 把敌人会干的事情设计出来 
-
-                int enemyIndex = 0;
-                while (enemyIndex < characters[currentPlayerIndex].Count)
+                
+                int enemyIndex = 0;  // 现在是第几个敌人在走ai
+                while (enemyIndex < characters[currentPlayerIndex].Count)  // 遍历所有敌人
                 {
-                    if (characters[currentPlayerIndex][enemyIndex].characterAi)
+                    if (characters[currentPlayerIndex][enemyIndex].characterAi)  // 如果我这个人身上挂的有ai
                     {
-                        if (characters[currentPlayerIndex][enemyIndex].hasMoved == false)
+                        if (characters[currentPlayerIndex][enemyIndex].hasMoved == false)  // 如果这个人还没有移动过 就开始走移动ai
                         {
-                            selectedCharacter = characters[currentPlayerIndex][enemyIndex];
-                            // 遍历移动相关的aiclips列表找到第一个可执行的aiclip
-                            AIClip moveAI = selectedCharacter.characterAi.GetAvailableMoveAI(selectedCharacter);
-                            // 执行moveAI中的各个actions
-                            selectedCharacter.characterAi.ExecuteAI(moveAI);
-                            // 
-                            characters[currentPlayerIndex][enemyIndex].hasMoved = true;
+                            selectedCharacter = characters[currentPlayerIndex][enemyIndex];  // 把selectedCharacter设置为这个敌人 selectedCharacter的作用是说它就是我们目前的焦点
+                            
+                            // todo 0613 处理一下没有满足的条件时候 ExecuteAI(moveAI)中 moveAi为空的问题 另外注意下这里enemyIndex会不会增加 似乎有个死循环
+                            AIClip moveAI = selectedCharacter.characterAi.GetAvailableMoveAI(selectedCharacter); // 遍历移动相关的aiclips列表 判定condition 找到第一个可执行的aiclip
+                            
+                            selectedCharacter.characterAi.ExecuteAI(moveAI);  // 执行找到的这个移动相关AiClip中的各个actions
+                            characters[currentPlayerIndex][enemyIndex].hasMoved = true;  // 执行完移动ai 这个敌人就算移动完了
+                            characters[currentPlayerIndex][enemyIndex].animator.FinishMovement();  // 处理下角色画面表现 把它涂成黄色
+                            
                         }
-                        else if (characters[currentPlayerIndex][enemyIndex].hasAttacked == false)
+                        else if (characters[currentPlayerIndex][enemyIndex].hasAttacked == false)  // 如果这个人还没有攻击过 就开始走攻击ai
                         {
-                            selectedCharacter = characters[currentPlayerIndex][enemyIndex];
-                            AIClip attackAI = selectedCharacter.characterAi.GetAvailableAttackAI(selectedCharacter);
-                            // 执行attackAI中的各个actions
-                            selectedCharacter.characterAi.ExecuteAI(attackAI);
-                            characters[currentPlayerIndex][enemyIndex].hasAttacked = true;
+                            selectedCharacter = characters[currentPlayerIndex][enemyIndex];  // 把selectedCharacter设置为这个敌人 selectedCharacter的作用是说它就是我们目前的焦点
+                            AIClip attackAI = selectedCharacter.characterAi.GetAvailableAttackAI(selectedCharacter);  // 遍历攻击相关的aiclips列表 判定condition 找到第一个可执行的aiclip
+                            selectedCharacter.characterAi.ExecuteAI(attackAI);  // 执行找到的这个攻击相关AiClip中的各个actions
+                            characters[currentPlayerIndex][enemyIndex].hasAttacked = true;  // 执行完攻击ai 这个敌人就算攻击完了
+                            characters[currentPlayerIndex][enemyIndex].animator.FinishAction();  // 处理下角色画面表现 把它涂成灰色
                             
                         }
 
                         if ((characters[currentPlayerIndex][enemyIndex].hasMoved) &&
-                            (characters[currentPlayerIndex][enemyIndex].hasAttacked))
+                            (characters[currentPlayerIndex][enemyIndex].hasAttacked))  // 如果这个人已经移动过并且攻击过 那就认为这人完事儿了
                         {
-                            enemyIndex++;   
+                            enemyIndex++;  // 继续遍历下一个敌人
                         }
                     }
                     else
@@ -843,6 +844,7 @@ public class GameManager : MonoBehaviour
                 targets |= (byte)(relation & range.targetType);
             }
         }
+        
 
         return targets;
     }

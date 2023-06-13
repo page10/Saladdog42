@@ -18,7 +18,7 @@ public static class AiConditions
     /// <returns>攻击范围内是不是有敌人</returns>
     public static bool hasAttackableEnemy(in CharacterObject characterObj)
     {
-        return (GameState.GetAttackableCharacters(characterObj)|Constants.TargetType_Foe) != 0;
+        return (GameState.GetAttackableCharacters(characterObj) & Constants.TargetType_Foe) != 0;
     }
     
     /// <summary>
@@ -28,6 +28,6 @@ public static class AiConditions
     /// <returns></returns>
     public static bool hasAttackableAlly(in CharacterObject characterObj)
     {
-        return (GameState.GetAttackableCharacters(characterObj)|Constants.TargetType_Ally) != 0;
+        return (GameState.GetAttackableCharacters(characterObj) & Constants.TargetType_Ally) != 0;
     }
 }

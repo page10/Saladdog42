@@ -5,7 +5,8 @@ using Structs;
 using UnityEngine;
 
 /// <summary>
-/// gameManager调用了角色的AI（函数）返回得到aiNode，然后根据aiNode来执行
+/// 被game Manager调用了角色的AI（ExecuteAi函数）而调用
+/// 返回得到aiNodeData，然后根据aiNodeData来执行
 /// </summary>
 public static class AiActions
 {
@@ -94,7 +95,8 @@ public static class AiActions
         // 在玩家阶段 这里跳转到了一个PlayBattleAnimation的状态
         // 对于敌人 应该也有一个播动画的状态但不是和玩家这个一样的东西
         
-        
+        AiNodeData aiNodeData = new AiNodeData(new AttackOrHeal(selectedCharacterObject, targetCharacterObject,selectedCharacterObject.attack.weaponCurIndex), new List<AiNodeData>());
+        return aiNodeData;
     }
 
     
