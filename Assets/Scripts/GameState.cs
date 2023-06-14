@@ -44,6 +44,7 @@ public enum GameControlState
     /// 也许可以加一个按键跳过的功能
     /// </summary>
     EnemyAnimation,
+    EnemyExecuteAi,
 }
 public static class GameState 
 {

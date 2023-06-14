@@ -40,44 +40,6 @@ public class AiNode
     public static AiPerform GenAiPerform(AiNodeData data)
     {
         return data.ThisEventData.GetPerform();
-        // 移动 执行
-        //     if (data.ThisEventData is MoveToGrid)  
-        //     {
-        //         MoveToGrid m = (MoveToGrid)data.ThisEventData;
-        //         return (parameters) =>
-        //         {
-        //             // 它没法寻路 character身上没有寻路功能 应该是gameManager拿好了给他路径
-        //             // 根据拿到的character和grid 改变character的位置 并且播动画
-        //             // 播完动画之后返回true
-        //             
-        //             List<Vector2Int> path = new List<Vector2Int>();
-        //             // todo 这里应该要修改对应character的gpos 但是这里拿到的是个struct 可以在这直接改character吗
-        //             // 难道要让gamemanager做？感觉不对 gamemanager应该不是在这层调 是在aiaction里
-        //             
-        //             if (m.Nodes != null)  // 放进path里
-        //             {
-        //                 for (int i = 0; i < m.Nodes.Length; i++)
-        //                 {
-        //                     path.Add(m.Nodes[i]);
-        //                 }
-        //             }
-        //             
-        //             m.Character.gPos.grid = path[path.Count - 1];
-        //             m.Character.animator.StartMove(path);
-        //             return true;
-        //         };
-        //     }
-        //
-        //     if (data.ThisEventData is AttackOrHeal)
-        //     {
-        //         AttackOrHeal a = (AttackOrHeal)data.ThisEventData;
-        //         Debug.Log("attack or heal");
-        //         // todo 发起攻击 并且播动画
-        //         return (parameters) => { return true; };
-        //     }
-        //
-        //     return (args) => { return true; };
-        // }
     }
 }
 

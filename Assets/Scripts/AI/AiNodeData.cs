@@ -25,7 +25,7 @@ public struct MoveToGrid : IAiActionData
     /// </summary>
     public CharacterObject Character;
     /// <summary>
-    /// 移动路径 每个节点
+    /// 移动路径 
     /// 其实只要目标点就行了，路径可以是移动系统里面算出来，不归我AI管理
     /// </summary>
     public Vector2Int TargetGrid;
@@ -39,6 +39,25 @@ public struct MoveToGrid : IAiActionData
     //todo 
     public AiPerform GetPerform()
     {
+        // 执行移动ai
+        // 计算移动路径
+
+        Debug.Log("ai move to grid: " + TargetGrid);
+        
+        List<Vector2Int> moveGrids = GameState.gameManager.movementManager.GetMovePath(
+            TargetGrid //以后在这要提出来改一下 
+        );
+        AnimatorController animatorController =
+            Character.gameObject.GetComponent<AnimatorController>();
+        if (animatorController != null)
+        {
+            animatorController.StartMove(moveGrids);   // 操作角色移动 移动完成之后返回true
+            GameState.gameManager.ChangeGameState(GameControlState.EnemyAnimation);  // 切换到动画状态 但是在这个状态里怎么跳回来呢
+            // return args => animatorController.IsMoveFinished;
+            Character.hasMoved = true;  // 执行完移动ai 这个敌人就算移动完了
+            Character.animator.FinishMovement();  // 处理下角色画面表现 把它涂成黄色
+        }
+        
         return args => true;
     }
 }
@@ -67,6 +86,7 @@ public struct AttackOrHeal: IAiActionData
     //todo 
     public AiPerform GetPerform()
     {
+        Debug.Log("ai attack or heal:" + Target);
         return args => true;
     }
 }
