@@ -41,6 +41,7 @@ public class GameManager : MonoBehaviour
 
     private List<AiNode> aiNodes = new List<AiNode>(); // 这俩东西应该是list吗
 
+    private long _tickElapsed = 0;
 
     private void Awake()
     {
@@ -135,11 +136,11 @@ public class GameManager : MonoBehaviour
                         if (!selectedCharacter.hasMoved) // 还没移动
                         {
                             // 展开移动和攻击范围 并进入「ShowRange」
-                            movementManager.GetMoveRange(
+                            List<DijkstraMoveInfo> logicMoveRange = movementManager.GetMoveRange(
                                 selectedCharacter.gameObject.GetComponent<CharacterMovement>(),
                                 GetOccupiedGrids(currentCharacter), GetAllyGrids(currentCharacter));
                             uiManager.ShowAllRange(selectedCharacter.gameObject.GetComponent<CharacterAttack>(),
-                                MovementManager.GetV2IntFromDijkstraRange(movementManager.LogicMoveRange),
+                                MovementManager.GetV2IntFromDijkstraRange(logicMoveRange),
                                 mapGenerator.mapSize, GetAllyGrids(currentCharacter));
                             ChangeGameState(GameControlState.ShowRange);
 
@@ -204,7 +205,10 @@ public class GameManager : MonoBehaviour
                         //没选中我方或敌方角色 包括自己脚下
                         Debug.Log("selected no character");
                         List<Vector2Int> moveGrids = movementManager.GetMovePath(
-                            currSelectGrid //以后在这要提出来改一下 
+                            selectedCharacter,
+                            currSelectGrid, //以后在这要提出来改一下
+                            GetOccupiedGrids(selectedCharacter),
+                            GetAllyGrids(selectedCharacter)
                         );
                         if (moveGrids.Count > 0)
                         {
@@ -250,7 +254,8 @@ public class GameManager : MonoBehaviour
                 List<Vector2Int> currAttackRange = selectedCharacter.gameObject.GetComponent<CharacterAttack>()
                     .GetAttackRange(currEnemy.GetComponent<GridPosition>().grid, mapGenerator.mapSize,
                         Constants.TargetType_Foe);
-                List<DijkstraMoveInfo> currMoveRange = movementManager.LogicMoveRange;
+                List<DijkstraMoveInfo> currMoveRange = movementManager.GetMoveRange(selectedCharacter,
+                    GetOccupiedGrids(selectedCharacter), GetAllyGrids(selectedCharacter));
 
                 List<Vector2Int> attackableArea = new List<Vector2Int>();
 
@@ -473,7 +478,7 @@ public class GameManager : MonoBehaviour
                 // 可以攻击的话 找是不是有可执行的攻击条件 有就执行 没有结束
                 // 还要有一个敌人回合选敌人的状态
 
-                Debug.Log("EnemyTurn started!____________________");
+                Debug.Log(_tickElapsed + ">>>"+ "EnemyTurn started!____________________");
 
                 //这一步要做的事情是：
                 //1，找到要运行的角色，以及运行的ai
@@ -489,12 +494,12 @@ public class GameManager : MonoBehaviour
                         if ((characters[currentPlayerIndex][enemyIndex].hasMoved) &&
                             (characters[currentPlayerIndex][enemyIndex].hasAttacked)) // 如果这个人已经移动过并且攻击过 那就认为这人完事儿了
                         {
-                            Debug.Log("This guy(" + characters[currentPlayerIndex][enemyIndex].characterName + ") has worked" );
+                            Debug.Log(_tickElapsed + ">>>"+ "This guy(" + characters[currentPlayerIndex][enemyIndex].characterName + ") has worked" );
                             enemyIndex++; // 继续遍历下一个敌人
                             continue;
                         }
                         
-                        Debug.Log(">>>>Check for this guy(" + characters[currentPlayerIndex][enemyIndex].characterName + ") ai" );
+                        Debug.Log(_tickElapsed + ">>>"+ ">>>>Check for this guy(" + characters[currentPlayerIndex][enemyIndex].characterName + ") ai" );
                         
                         if (characters[currentPlayerIndex][enemyIndex].hasMoved == false) // 如果这个人还没有移动过 就开始走移动ai
                         {
@@ -539,11 +544,11 @@ public class GameManager : MonoBehaviour
                 }
                 
                 //找到人了就办事儿，否则就下一个
-                Debug.Log(selectedCharacter != null
+                Debug.Log(_tickElapsed + ">>>"+ (selectedCharacter != null
                     ? (selectedCharacter.characterName + " has " + aiNodes.Count + " to run")
-                    : ("no guy found")
+                    : ("no guy found"))
                 );
-                if (selectedCharacter != null && aiNodes.Count > 0)
+                if (selectedCharacter != null)
                 {
                     ChangeGameState(GameControlState.EnemyExecuteAi);
                 }
@@ -596,6 +601,8 @@ public class GameManager : MonoBehaviour
         {
             waitTick -= 1;
         }
+
+        _tickElapsed++;
     }
 
     /// <summary>
@@ -604,7 +611,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void ChangeGameState(GameControlState state)
     {
-        Debug.Log(GameState.gameControlState + "==>" + state);
+        Debug.Log(_tickElapsed + ">>>"+ GameState.gameControlState + "==>" + state);
         if (state == GameControlState.SelectCharacter) // 死亡时移除
         {
             selectedCharacter = null; // 回合开始 把我方和敌方的选中角色都清空
@@ -1042,38 +1049,38 @@ public class GameManager : MonoBehaviour
         return new SelectedCharacterInfo(Constants.nullPlayerIndex, Constants.nullCharacterIndex);
     }
 
-    private SelectedMovePos GetSelectedMoveInfo(Vector2Int selectedGridPos)
-    {
-        for (int i = 1; i < playerCount; i++)
-        {
-            for (int j = 1; j < characters[i].Count; j++)
-            {
-                if (selectedGridPos == characters[i][j].gPos.grid)
-                {
-                    return SelectedMovePos.enemy;
-                }
-            }
-        }
-
-        for (int i = 0; i < characters[0].Count; i++)
-        {
-            if (selectedGridPos == characters[0][i].gPos.grid)
-            {
-                return SelectedMovePos.unmoveable;
-            }
-        }
-
-        List<DijkstraMoveInfo> currentMoveRange = movementManager.LogicMoveRange; // 总觉得这么写会爆炸
-        for (int i = 0; i < currentMoveRange.Count; i++)
-        {
-            if (selectedGridPos == currentMoveRange[i].position)
-            {
-                return SelectedMovePos.moveable;
-            }
-        }
-
-        return SelectedMovePos.unmoveable;
-    }
+    // private SelectedMovePos GetSelectedMoveInfo(Vector2Int selectedGridPos)
+    // {
+    //     for (int i = 1; i < playerCount; i++)
+    //     {
+    //         for (int j = 1; j < characters[i].Count; j++)
+    //         {
+    //             if (selectedGridPos == characters[i][j].gPos.grid)
+    //             {
+    //                 return SelectedMovePos.enemy;
+    //             }
+    //         }
+    //     }
+    //
+    //     for (int i = 0; i < characters[0].Count; i++)
+    //     {
+    //         if (selectedGridPos == characters[0][i].gPos.grid)
+    //         {
+    //             return SelectedMovePos.unmoveable;
+    //         }
+    //     }
+    //
+    //     List<DijkstraMoveInfo> currentMoveRange = movementManager.LogicMoveRange; // 总觉得这么写会爆炸
+    //     for (int i = 0; i < currentMoveRange.Count; i++)
+    //     {
+    //         if (selectedGridPos == currentMoveRange[i].position)
+    //         {
+    //             return SelectedMovePos.moveable;
+    //         }
+    //     }
+    //
+    //     return SelectedMovePos.unmoveable;
+    // }
 
 
     private List<Vector2Int> GenerateGrids(List<int> playersAndCount)
@@ -1335,7 +1342,9 @@ public class GameManager : MonoBehaviour
     public bool StartCharacterMove(CharacterObject character, Vector2Int toGrid, out List<Vector2Int> moveGrids)
     {
         //todo 组织路径的功能似乎有毛病，得查
-        moveGrids = movementManager.GetMovePath(toGrid);
+        List<Vector2Int> occupiedGrids = GetOccupiedGrids(character);
+        List<Vector2Int> allyGrids = GetAllyGrids(character);
+        moveGrids = movementManager.GetMovePath(character, toGrid, occupiedGrids, allyGrids);
         if (moveGrids.Count > 0)
         {
             //uiManager.ClearAllRange();

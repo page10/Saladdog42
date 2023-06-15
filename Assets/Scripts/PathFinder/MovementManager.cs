@@ -5,11 +5,11 @@ using UnityEngine;
 public class MovementManager : MonoBehaviour
 {
     private MapGenerator _mapGenerator;
-    private GridPosition _movingCharacter;
+    //private GridPosition _movingCharacter;
 
     
-    private List<DijkstraMoveInfo> _logicMoveRange = new List<DijkstraMoveInfo>();
-    public List<DijkstraMoveInfo> LogicMoveRange { get => _logicMoveRange; }
+    //private List<DijkstraMoveInfo> _logicMoveRange = new List<DijkstraMoveInfo>();
+    //public List<DijkstraMoveInfo> LogicMoveRange { get => _logicMoveRange; }
 
     private void Awake()
     {
@@ -22,11 +22,9 @@ public class MovementManager : MonoBehaviour
     ///<param name="occupiedGrids"> 是被其他单位占了的位置 </param>
     ///<param name="allyGrids"> 是被友军单位占了的位置 </param>
     ///</summary>
-    public void GetMoveRange(CharacterMovement characterMove, List<Vector2Int> occupiedGrids, List<Vector2Int> allyGrids)  
+    public List<DijkstraMoveInfo> GetMoveRange(CharacterMovement characterMove, List<Vector2Int> occupiedGrids, List<Vector2Int> allyGrids)  
     {
-        if (!_mapGenerator || !characterMove) return;
-
-        _movingCharacter = characterMove.GetComponent<GridPosition>();
+        if (!_mapGenerator || !characterMove) return new List<DijkstraMoveInfo>();
 
         int width = _mapGenerator.Map.GetLength(0);
         int height = _mapGenerator.Map.GetLength(1);
@@ -44,7 +42,7 @@ public class MovementManager : MonoBehaviour
 
         GridPosition position = characterMove.GetComponent<GridPosition>();
         Vector2Int pos = position ? position.grid : Vector2Int.zero;
-        _logicMoveRange = characterMove.GetDijkstraRange(pos);
+        return characterMove.GetDijkstraRange(pos);
     }
     
     /// <summary>
@@ -98,19 +96,39 @@ public class MovementManager : MonoBehaviour
         );
     }
 
-    private int IndexInLogicMoveRange(Vector2Int grid)
-    {
-        for (int i = 0; i < _logicMoveRange.Count; i++)
-        {
-            if (_logicMoveRange[i].position == grid) return i;
-        }
-        return -1;
-    }
+    // private int IndexInLogicMoveRange(Vector2Int grid)
+    // {
+    //     for (int i = 0; i < _logicMoveRange.Count; i++)
+    //     {
+    //         if (_logicMoveRange[i].position == grid) return i;
+    //     }
+    //     return -1;
+    // }
 
-    public List<Vector2Int> GetMovePath(Vector2Int targetGrid)
+    public List<Vector2Int> GetMovePath(CharacterObject characterObject, Vector2Int targetGrid,
+        List<Vector2Int> occupiedGrids, List<Vector2Int> allyGrids)
     {
-        Vector2Int startGrid = _movingCharacter.grid;  // 移动的起始位置 也就是当前移动角色所在位置
+        GridPosition gp = characterObject.GetComponent<GridPosition>();
+        Vector2Int startGrid = gp ? gp.grid : targetGrid;
         List<Vector2Int> res = new List<Vector2Int>();
+        List<DijkstraMoveInfo> logicMoveRange = GetMoveRange(characterObject, occupiedGrids, allyGrids);
+
+        int IndexInLogicMoveRange(Vector2Int g) 
+        {
+            int idx = -1;
+            for (int i = 0; i < logicMoveRange.Count; i++)
+            {
+                if (logicMoveRange[i].position.x == g.x && logicMoveRange[i].position.y == g.y)
+                {
+                    idx = i;
+                    break;
+                }
+            }
+
+            return idx;
+        }
+
+
         int targetGridIndex = IndexInLogicMoveRange(targetGrid);
         if (targetGridIndex < 0)
         {
@@ -122,8 +140,8 @@ public class MovementManager : MonoBehaviour
         while (true)  //根据dijkstra里各点的from 获得从起点到终点的路径
         {
             if (
-                _logicMoveRange[currentIndex].position == _logicMoveRange[currentIndex].from ||
-                _logicMoveRange[currentIndex].position == startGrid
+                logicMoveRange[currentIndex].position == logicMoveRange[currentIndex].from ||
+                logicMoveRange[currentIndex].position == startGrid
             )
             {
                 res.Add(startGrid);
@@ -131,8 +149,8 @@ public class MovementManager : MonoBehaviour
             }
             else
             {
-                res.Add(_logicMoveRange[currentIndex].position);
-                currentIndex = IndexInLogicMoveRange(_logicMoveRange[currentIndex].from);
+                res.Add(logicMoveRange[currentIndex].position);
+                currentIndex = IndexInLogicMoveRange(logicMoveRange[currentIndex].from);
                 if (currentIndex < 0) break;
             }
         }
