@@ -16,9 +16,27 @@ public interface IAiActionData
 }
 
 /// <summary>
+/// 等待一定时间
+/// </summary>
+public class AIWait : IAiActionData
+{
+    public float WaitSec;
+
+    public AIWait(float waitSec)
+    {
+        WaitSec = waitSec;
+    }
+    
+    public AiPerform GetPerform()
+    {
+        return (character, e, args) => e >= WaitSec;
+    }
+}
+
+/// <summary>
 /// 移动到某个格子
 /// </summary>
-public struct MoveToGrid : IAiActionData
+public class MoveToGrid : IAiActionData
 {
     /// <summary>
     /// 要移动的那个角色
@@ -39,26 +57,22 @@ public struct MoveToGrid : IAiActionData
     //todo 
     public AiPerform GetPerform()
     {
-        // 执行移动ai
-        // 计算移动路径
-
-        Debug.Log("ai move to grid: " + TargetGrid);
-        
-        List<Vector2Int> moveGrids = GameState.gameManager.movementManager.GetMovePath(
-            TargetGrid //以后在这要提出来改一下 
-        );
-        AnimatorController animatorController =
-            Character.gameObject.GetComponent<AnimatorController>();
-        if (animatorController != null)
+        //todo 执行
+        return (character, elapsed, args) =>
         {
-            animatorController.StartMove(moveGrids);   // 操作角色移动 移动完成之后返回true
-            GameState.gameManager.ChangeGameState(GameControlState.EnemyAnimation);  // 切换到动画状态 但是在这个状态里怎么跳回来呢
-            // return args => animatorController.IsMoveFinished;
-            Character.hasMoved = true;  // 执行完移动ai 这个敌人就算移动完了
-            Character.animator.FinishMovement();  // 处理下角色画面表现 把它涂成黄色
-        }
-        
-        return args => true;
+            if (elapsed <= 0)
+            {
+                //刚开始的时候让角色开始移动
+                Debug.Log("ai move to grid: " + TargetGrid);
+                GameState.gameManager.StartCharacterMove(character, TargetGrid);
+                return false;
+            }
+            else
+            {
+                //之后就是等待结果
+                return character.IsMovingAnimDone();
+            }
+        };
     }
 }
 
@@ -67,7 +81,7 @@ public struct MoveToGrid : IAiActionData
 /// 攻击或治疗某个目标
 /// 先写成武器index吧 之后可能写成武器weaponObj（似乎没有index好）
 /// </summary>
-public struct AttackOrHeal: IAiActionData
+public class AttackOrHeal: IAiActionData
 {
     public CharacterObject Character;
     public CharacterObject Target;
@@ -86,8 +100,12 @@ public struct AttackOrHeal: IAiActionData
     //todo 
     public AiPerform GetPerform()
     {
-        Debug.Log("ai attack or heal:" + Target);
-        return args => true;
+        //todo 执行
+        return (character, elapsed, args) =>
+        {
+            Debug.Log("ai attack or heal:" + Target);
+            return true;
+        };
     }
 }
 
@@ -113,4 +131,6 @@ public class AiNodeData
         ThisEventData = thisEventData;
         NextEventDatas = nextEventDatas;
     }
+
+    public static AiNodeData Empty = new AiNodeData(null, new List<AiNodeData>());
 }

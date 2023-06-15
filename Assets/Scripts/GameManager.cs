@@ -33,11 +33,13 @@ public class GameManager : MonoBehaviour
     private bool haveSelectedEnemy = false; // 状态链
     List<MsgDlgButtonInfo> msgDlgButtonInfos = new List<MsgDlgButtonInfo>();
     private Vector2Int lastPosition; // 上一个状态时候的character位置
+
     /// <summary>
     /// 敌人ai行动数据
     /// </summary>
     private AiNodeData aiNodeData; // AI的数据 不确定要不要用list
-    private List<AiNode> aiNodes = new List<AiNode>();  // 这俩东西应该是list吗
+
+    private List<AiNode> aiNodes = new List<AiNode>(); // 这俩东西应该是list吗
 
 
     private void Awake()
@@ -278,30 +280,36 @@ public class GameManager : MonoBehaviour
                         currentCamera.ScreenToWorldPoint(Input.mousePosition));
                     if (attackableArea.Contains(currSelectGrid))
                     {
-                        List<Vector2Int> moveGrids = movementManager.GetMovePath(currSelectGrid);
-                        if (moveGrids.Count > 0)
+                        if (StartCharacterMove(selectedCharacter, currSelectGrid))
                         {
                             uiManager.ClearAllRange();
-                            for (int i = 0; i < moveGrids.Count; i++)
-                            {
-                                uiManager.AddRange(SignType.Move, moveGrids[i]);
-                            }
-
-                            AnimatorController animatorController =
-                                selectedCharacter.gameObject.GetComponent<AnimatorController>();
-                            if (animatorController != null)
-                            {
-                                //lastPosition = currSelectGrid;  // 把这个位置更新了
-                                animatorController.StartMove(moveGrids);
-                                ChangeGameState(GameControlState.CharacterMoving);
-                                haveSelectedEnemy = true; // 我之后不能再选敌人
-                                waitTick = 10;
-                            }
+                            haveSelectedEnemy = true; // 我之后不能再选敌人
                         }
-                        else
-                        {
-                            //留个以后错误提示的位置
-                        }
+                        //
+                        // List<Vector2Int> moveGrids = movementManager.GetMovePath(currSelectGrid);
+                        // if (moveGrids.Count > 0)
+                        // {
+                        //     uiManager.ClearAllRange();
+                        //     for (int i = 0; i < moveGrids.Count; i++)
+                        //     {
+                        //         uiManager.AddRange(SignType.Move, moveGrids[i]);
+                        //     }
+                        //
+                        //     AnimatorController animatorController =
+                        //         selectedCharacter.gameObject.GetComponent<AnimatorController>();
+                        //     if (animatorController != null)
+                        //     {
+                        //         //lastPosition = currSelectGrid;  // 把这个位置更新了
+                        //         animatorController.StartMove(moveGrids);
+                        //         ChangeGameState(GameControlState.CharacterMoving);
+                        //         haveSelectedEnemy = true; // 我之后不能再选敌人
+                        //         waitTick = 10;
+                        //     }
+                        // }
+                        // else
+                        // {
+                        //     //留个以后错误提示的位置
+                        // }
                     }
                 }
             }
@@ -311,7 +319,6 @@ public class GameManager : MonoBehaviour
                 if (selectedCharacter.gameObject == null)
                 {
                     ChangeGameState(GameControlState.SelectCharacter);
-                    waitTick = 10;
                     uiManager.ClearAllRange();
                     return;
                 }
@@ -326,7 +333,6 @@ public class GameManager : MonoBehaviour
 
                         uiManager.ShowMsgDlg(msgDlgButtonInfos);
                         ChangeGameState(GameControlState.ShowCommandMenu);
-                        waitTick = 10;
                     }
                     else // 我之前已经选过敌人了
                     {
@@ -455,58 +461,59 @@ public class GameManager : MonoBehaviour
 
                 Debug.Log("EnemyTurn started!____________________");
 
-                // for 循环 得到selectedCharacter是谁 如果for走完了 就进入endTurn
-                // for (int i = 0; i < characters[currentPlayerIndex].Count; i++)
-                // {
-                //     // 判断这个角色是否可以移动
-                //     if (characters[currentPlayerIndex][i].hasMoved == false)
-                //     {
-                //         selectedCharacter = characters[currentPlayerIndex][i];
-                //         
-                //         if (selectedCharacter.characterAi)
-                //         {
-                //             // 遍历移动相关的aiclips列表找到第一个可执行的aiclip
-                //             AIClip moveAI = selectedCharacter.characterAi.GetAvailableMoveAI(selectedCharacter);
-                //
-                //             // 执行moveAI中的各个actions
-                //             selectedCharacter.characterAi.ExecuteAI(moveAI);
-                //             continue;
-                //         }
-                //     }
-                //     else if (characters[currentPlayerIndex][i].hasAttacked == false) // 判断这个角色是否可以攻击 如果可以就走攻击ai
-                //     {
-                //         selectedCharacter = characters[currentPlayerIndex][i];
-                //         // 遍历攻击相关的aiclips列表找有没有可以执行的
-                //         AIClip attackAI = selectedCharacter.characterAi.GetAvailableAttackAI(selectedCharacter);
-                //         // 执行attackAI中的各个actions
-                //         selectedCharacter.characterAi.ExecuteAI(attackAI);
-                //         continue;
-                //     }
-                // }
-                
-                int enemyIndex = 0;  // 现在是第几个敌人在走ai
-                while (enemyIndex < characters[currentPlayerIndex].Count)  // 遍历所有敌人
+                //这一步要做的事情是：
+                //1，找到要运行的角色，以及运行的ai
+                //2，将aiPerform加入到aiNodes
+                //3，启动ai执行，也就是跳转状态
+                int enemyIndex = 0; // 现在是第几个敌人在走ai
+                aiNodes.Clear();
+                while (enemyIndex < characters[currentPlayerIndex].Count) // 遍历所有敌人
                 {
-                    if (characters[currentPlayerIndex][enemyIndex].characterAi)  // 如果我这个人身上挂的有ai
+                    if (characters[currentPlayerIndex][enemyIndex].characterAi) // 如果我这个人身上挂的有ai
                     {
-                        if (characters[currentPlayerIndex][enemyIndex].hasMoved == false)  // 如果这个人还没有移动过 就开始走移动ai
+                        if (characters[currentPlayerIndex][enemyIndex].hasMoved == false) // 如果这个人还没有移动过 就开始走移动ai
                         {
-                            selectedCharacter = characters[currentPlayerIndex][enemyIndex];  // 把selectedCharacter设置为这个敌人 selectedCharacter的作用是说它就是我们目前的焦点
-                            AIClip moveAI = selectedCharacter.characterAi.GetAvailableMoveAI(selectedCharacter); // 遍历移动相关的aiclips列表 判定condition 找到第一个可执行的aiclip
-                            selectedCharacter.characterAi.GenAiNode(moveAI, aiNodeData);  // 执行找到的这个移动相关AiClip中的各个actions 生成aiNodeData
+                            selectedCharacter =
+                                characters[currentPlayerIndex]
+                                    [enemyIndex]; // 把selectedCharacter设置为这个敌人 selectedCharacter的作用是说它就是我们目前的焦点
+                            AIClip moveAI =
+                                selectedCharacter.characterAi
+                                    .GetAvailableMoveAI(
+                                        selectedCharacter); // 遍历移动相关的aiclips列表 判定condition 找到第一个可执行的aiclip
+                            if (moveAI.Actions != null)
+                                foreach (AIAction aiAction in moveAI.Actions)
+                                {
+                                    aiNodes.Add(AiNode.FromAiNodeData(selectedCharacter, aiAction(selectedCharacter)));
+                                }
+
+                            selectedCharacter.hasMoved = true;
+                            ChangeGameState(GameControlState.EnemyExecuteAi);
+                            return;
                         }
-                        else if (characters[currentPlayerIndex][enemyIndex].hasAttacked == false)  // 如果这个人还没有攻击过 就开始走攻击ai
+                        else if (characters[currentPlayerIndex][enemyIndex].hasAttacked ==
+                                 false) // 如果这个人还没有攻击过 就开始走攻击ai
                         {
-                            selectedCharacter = characters[currentPlayerIndex][enemyIndex];  // 把selectedCharacter设置为这个敌人 selectedCharacter的作用是说它就是我们目前的焦点
-                            AIClip attackAI = selectedCharacter.characterAi.GetAvailableAttackAI(selectedCharacter);  // 遍历攻击相关的aiclips列表 判定condition 找到第一个可执行的aiclip
-                            selectedCharacter.characterAi.GenAiNode(attackAI, aiNodeData);  // 执行找到的这个攻击相关AiClip中的各个actions
-                            
+                            selectedCharacter =
+                                characters[currentPlayerIndex]
+                                    [enemyIndex]; // 把selectedCharacter设置为这个敌人 selectedCharacter的作用是说它就是我们目前的焦点
+                            AIClip attackAI =
+                                selectedCharacter.characterAi
+                                    .GetAvailableAttackAI(
+                                        selectedCharacter); // 遍历攻击相关的aiclips列表 判定condition 找到第一个可执行的aiclip
+                            if (attackAI.Actions != null)
+                                foreach (AIAction aiAction in attackAI.Actions)
+                                {
+                                    aiNodes.Add(AiNode.FromAiNodeData(selectedCharacter, aiAction(selectedCharacter)));
+                                }
+                            selectedCharacter.hasAttacked = true;
+                            ChangeGameState(GameControlState.EnemyExecuteAi);
+                            return;
                         }
 
                         if ((characters[currentPlayerIndex][enemyIndex].hasMoved) &&
-                            (characters[currentPlayerIndex][enemyIndex].hasAttacked))  // 如果这个人已经移动过并且攻击过 那就认为这人完事儿了
+                            (characters[currentPlayerIndex][enemyIndex].hasAttacked)) // 如果这个人已经移动过并且攻击过 那就认为这人完事儿了
                         {
-                            enemyIndex++;  // 继续遍历下一个敌人
+                            enemyIndex++; // 继续遍历下一个敌人
                         }
                     }
                     else
@@ -514,8 +521,6 @@ public class GameManager : MonoBehaviour
                         enemyIndex++;
                     }
                 }
-
-                
                 ChangeGameState(GameControlState.EndTurn);
             }
                 break;
@@ -527,19 +532,25 @@ public class GameManager : MonoBehaviour
             case GameControlState.EnemyExecuteAi:
             {
                 // todo 在这里逐条执行ainode
-                InitAiNode();  // 初始化aiNode列表
-                
-                // List<AiNode> toAdd = new List<AiNode>();
-                // foreach (AiNodeData nodeData in aiNodeData.NextEventDatas)
-                // {
-                //     AiNode node = AiNode.FromAiNodeData(nodeData);
-                //     toAdd.Add(node);
-                // }
-                //
-                // foreach (AiNode aiNode in toAdd)
-                // {
-                //     
-                // }
+                int aiIndex = 0;
+                float delta = Time.fixedDeltaTime;  
+                while (aiIndex < aiNodes.Count)
+                {
+                    if (aiNodes[aiIndex].UpdateNode(delta))
+                    {
+                        //这条执行完毕了，把下一条加入要执行的列表，然后删除
+                        foreach (AiNodeData data in aiNodes[aiIndex].NextEvents)
+                        {
+                            aiNodes.Add(AiNode.FromAiNodeData(selectedCharacter, data));
+                        }
+                        aiNodes.RemoveAt(aiIndex);
+                    }
+                    else
+                    {
+                        aiIndex++;
+                    }
+                }
+                ChangeGameState(GameControlState.EnemyTurn);
             }
                 break;
             case GameControlState.EndTurn:
@@ -588,6 +599,7 @@ public class GameManager : MonoBehaviour
         }
 
         GameState.gameControlState = state;
+        waitTick = 10;
     }
 
     /// <summary>
@@ -596,7 +608,7 @@ public class GameManager : MonoBehaviour
     private List<MsgDlgButtonInfo> GetMsgDlgButtonInfos()
     {
         // todo 加结束我方回合的按钮
-         
+
         List<MsgDlgButtonInfo> currentMsgDlgButtonInfos = new List<MsgDlgButtonInfo>();
         byte abilities = CheckAbilities(selectedCharacter);
         bool canExchangeItem = CheckExchangeItemAbility(); // 这个还没写
@@ -644,7 +656,7 @@ public class GameManager : MonoBehaviour
         for (int i = 0; i < characterAttack.Weapons.Count; i++)
         {
             currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo(characterAttack.Weapons[i].weaponName, WeaponCommand,
-                new object[] { i }));
+                new object[] {i}));
         }
 
         currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("Cancel", CancelCommand, Array.Empty<object>()));
@@ -663,7 +675,7 @@ public class GameManager : MonoBehaviour
         {
             currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo(characterAttack.Weapons[i].weaponName,
                 WeaponPreviewCommand,
-                new object[] { i }));
+                new object[] {i}));
         }
 
         currentMsgDlgButtonInfos.Add(new MsgDlgButtonInfo("Cancel", CancelCommand, Array.Empty<object>()));
@@ -678,7 +690,7 @@ public class GameManager : MonoBehaviour
     /// <param name="args"></param>
     private void WeaponCommand(params object[] args)
     {
-        selectedCharacter.attack.weaponCurIndex = (int)args[0];
+        selectedCharacter.attack.weaponCurIndex = (int) args[0];
         uiManager.HideMsgDlg();
     }
 
@@ -688,7 +700,7 @@ public class GameManager : MonoBehaviour
     /// <param name="args"></param>
     private void WeaponPreviewCommand(params object[] args)
     {
-        selectedCharacter.attack.weaponCurIndex = (int)args[0];
+        selectedCharacter.attack.weaponCurIndex = (int) args[0];
         // todo 这里要重算一遍攻击 这个计算没有去掉概率 但是打算整体战斗去掉概率
         //uiManager.HideMsgDlg();
         CalBattlePreview();
@@ -820,7 +832,7 @@ public class GameManager : MonoBehaviour
         uiManager.ClearAllRange();
         ChangeGameState(GameControlState.SelectCharacter);
     }
-    
+
     /// <summary>
     /// 结束我方回合
     /// </summary>
@@ -859,10 +871,10 @@ public class GameManager : MonoBehaviour
                 byte relation =
                     selectedCharacterObject.GetRelation(
                         characters[selectedCharacterInfo.playerIndex][selectedCharacterInfo.characterIndex]);
-                targets |= (byte)(relation & range.targetType);
+                targets |= (byte) (relation & range.targetType);
             }
         }
-        
+
 
         return targets;
     }
@@ -943,7 +955,7 @@ public class GameManager : MonoBehaviour
 
         return allyGrids;
     }
-    
+
     private List<Vector2Int> GetAllyGrids(CharacterObject currentCharacter)
     {
         List<Vector2Int> allyGrids = new List<Vector2Int>();
@@ -1188,13 +1200,13 @@ public class GameManager : MonoBehaviour
     public List<CharacterObject> GetAttackableCharacterObjects(CharacterObject selectedCharacterObject)
     {
         List<CharacterObject> attackableCharacterObjects = new List<CharacterObject>();
-        
+
         // attack range, according to current weapon
         List<Vector2Int> attackableGrids = selectedCharacterObject.attack.GetAttackRange(
             selectedCharacterObject.gPos.grid, mapGenerator.mapSize,
             selectedCharacterObject.attack.Weapons[selectedCharacterObject.attack.weaponCurIndex].target
         );
-        
+
         foreach (Vector2Int grid in attackableGrids)
         {
             for (int i = 0; i < characters.Length; i++)
@@ -1208,7 +1220,7 @@ public class GameManager : MonoBehaviour
                     }
                 }
             }
-            
+
             // healing allys 
             // foreach (CharacterObject characterObject in characters[selectedCharacterObject.slaveTo.masterPlayerIndex])
             // {
@@ -1281,12 +1293,35 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 初始化ainode
+    /// 开始让一个角色移动（动画）
+    /// 这里不判断和理性，只管走
     /// </summary>
-    private void InitAiNode()
+    /// <param name="character">执行者</param>
+    /// <param name="toGrid">目标格子</param>
+    /// <returns>是否开始移动了</returns>
+    public bool StartCharacterMove(CharacterObject character, Vector2Int toGrid)
     {
-        // 要不要判断下如果在执行ai就直接return？
-        aiNodes.Clear();
-        aiNodes.Add(AiNode.FromAiNodeData(aiNodeData));
+        List<Vector2Int> moveGrids = movementManager.GetMovePath(toGrid);
+        if (moveGrids.Count > 0)
+        {
+            //uiManager.ClearAllRange();
+            for (int i = 0; i < moveGrids.Count; i++)
+            {
+                uiManager.AddRange(SignType.Move, moveGrids[i]);
+            }
+
+            AnimatorController animatorController =
+                character.gameObject.GetComponent<AnimatorController>();
+            if (animatorController != null)
+            {
+                //lastPosition = currSelectGrid;  // 把这个位置更新了
+                animatorController.StartMove(moveGrids);
+                ChangeGameState(GameControlState.CharacterMoving);
+                //haveSelectedEnemy = true; // 我之后不能再选敌人
+                return true;
+            }
+        }
+
+        return false;
     }
 }

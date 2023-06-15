@@ -73,4 +73,14 @@ public class CharacterObject : MonoBehaviour
         CharacterStatus res = new CharacterStatus("emptyID",9, 9, 3, 9,  10, 90, 80);
         return res;
     }
+
+    /// <summary>
+    /// 移动动画是否播放完毕了
+    /// </summary>
+    /// <returns></returns>
+    public bool IsMovingAnimDone()
+    {
+        MoveByPath moveByPath = gameObject.GetComponent<MoveByPath>();
+        return (moveByPath == null || moveByPath.IsMoving == false); //这次移动移动完成
+    }
 }

@@ -116,17 +116,18 @@ using UnityEngine;
         /// 应该类似于GenerateBattleAnimEvent()生成动画data时候做的事情
         /// </summary>
         /// <param name="aiClip">要执行的那个aiClip</param>
-        /// <param name="aiNodeData">执行到这条之前的aiNodeData</param>
-        public AiNodeData GenAiNode(AIClip aiClip, AiNodeData aiNodeData)
+        /// <param name="parentNodeData">执行到这条之前的aiNodeData</param>
+        public AiNodeData GenAiNode(AIClip aiClip, AiNodeData parentNodeData)
         {
-            if (aiClip.Actions == null) return aiNodeData;  // 如果没有可以执行的action就直接跳过
+            if (aiClip.Actions == null) return parentNodeData;  // 如果没有可以执行的action就直接跳过
             for (int j = 0; j < aiClip.Actions.Count; j++)
             {
                 AiNodeData newAiNodeData = aiClip.Actions[j](character);  // 逐条执行aiClip中的actions 里面是个AiAction这个delegate 也就是调用了AiActions里面的方法
-                aiNodeData.NextEventDatas.Add(newAiNodeData);  // 把新的aiNodeData加到这个aiNodeData的nextEventDatas里面 不确定对不对
+                if (parentNodeData != null)
+                    parentNodeData.NextEventDatas.Add(newAiNodeData);  // 把新的aiNodeData加到这个aiNodeData的nextEventDatas里面 不确定对不对
             }
 
-            return aiNodeData;
+            return parentNodeData;
         }
 
         
@@ -136,6 +137,7 @@ using UnityEngine;
     {
         public List<AICondition> Conditions;
         public List<AIAction> Actions;
+        
     }
 // 先写死一套ai逻辑绑在敌人身上 大概就是 如果攻击范围内有敌人 就移动并攻击血量最少的敌人 否则待机
 
