@@ -62,9 +62,10 @@ public class MoveToGrid : IAiActionData
         {
             if (elapsed <= 0)
             {
-                //刚开始的时候让角色开始移动
-                Debug.Log("ai move to grid: " + TargetGrid);
-                GameState.gameManager.StartCharacterMove(character, TargetGrid);
+                //刚开始的时候让角色开始移动 
+                Debug.Log("ai move to grid: " + TargetGrid + " from " + character.GetComponent<GridPosition>().grid);
+                List<Vector2Int> mg;
+                GameState.gameManager.StartCharacterMove(character, TargetGrid, out mg);
                 return false;
             }
             else
@@ -104,6 +105,7 @@ public class AttackOrHeal: IAiActionData
         return (character, elapsed, args) =>
         {
             Debug.Log("ai attack or heal:" + Target);
+            GameState.gameManager.StartAttack(character, Target);
             return true;
         };
     }

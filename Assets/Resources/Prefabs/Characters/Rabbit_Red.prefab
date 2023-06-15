@@ -163,7 +163,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveAiClipsData:
   - Conditions:
-    - hasAttackableEnemy
+    - Always
     Actions:
     - moveToNearestEnemy
   attackAiClipsData:

@@ -130,7 +130,7 @@ public class AnimatorController : MonoBehaviour  //监听animator 根据它的�
 
     public void RemoveCharacter()
     {
-        spriteRenderer.gameObject.SetActive(false);
+        if (spriteRenderer) spriteRenderer.gameObject.SetActive(false);
     }
     
     public void SetFaceDirection(Vector2Int direction)

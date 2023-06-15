@@ -80,6 +80,7 @@ public class CharacterObject : MonoBehaviour
     /// <returns></returns>
     public bool IsMovingAnimDone()
     {
+        Debug.Log(">>>>>Check Moving done");
         MoveByPath moveByPath = gameObject.GetComponent<MoveByPath>();
         return (moveByPath == null || moveByPath.IsMoving == false); //这次移动移动完成
     }

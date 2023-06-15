@@ -80,6 +80,7 @@ using UnityEngine;
 
                 if (meet)
                 {
+                    Debug.Log(gameObject.GetComponent<CharacterObject>().name + " moveTo " + _moveAiClips[i].Actions[0].Target);
                     return _moveAiClips[i];
                 }
             }

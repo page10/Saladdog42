@@ -6,7 +6,7 @@ using UnityEngine;
 public class MoveByPath : MonoBehaviour
 {
     private bool isMoving = false;  // initialize 
-    public bool IsMoving { get => isMoving; }
+    public bool IsMoving => isMoving; 
     public float moveSpeed = 400.00f;
     private List<PositionAndGrid> pathNodes = new List<PositionAndGrid>();  //只需要被传 不一定需要被别人知道
     public Vector2 MovingDirection { get; private set; } = Vector2.zero;
@@ -14,6 +14,7 @@ public class MoveByPath : MonoBehaviour
 
     public void StartMove(List<Vector2Int> path)
     {
+        Debug.Log(">>>>>Start Moving");
         if (path == null) return;
         pathNodes.Clear();
 

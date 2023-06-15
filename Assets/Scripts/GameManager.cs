@@ -280,9 +280,14 @@ public class GameManager : MonoBehaviour
                         currentCamera.ScreenToWorldPoint(Input.mousePosition));
                     if (attackableArea.Contains(currSelectGrid))
                     {
-                        if (StartCharacterMove(selectedCharacter, currSelectGrid))
+                        List<Vector2Int> moveGrids = new List<Vector2Int>();
+                        if (StartCharacterMove(selectedCharacter, currSelectGrid, out moveGrids))
                         {
                             uiManager.ClearAllRange();
+                            for (int i = 0; i < moveGrids.Count; i++)
+                            {
+                                uiManager.AddRange(SignType.Move, moveGrids[i]);
+                            }
                             haveSelectedEnemy = true; // 我之后不能再选敌人
                         }
                         //
@@ -323,20 +328,29 @@ public class GameManager : MonoBehaviour
                     return;
                 }
 
-                MoveByPath moveByPath = selectedCharacter.gameObject.GetComponent<MoveByPath>();
-                if (moveByPath == null || moveByPath.IsMoving == false) //这次移动移动完成
+                // MoveByPath moveByPath = selectedCharacter.gameObject.GetComponent<MoveByPath>();
+                // if (moveByPath == null || moveByPath.IsMoving == false) //这次移动移动完成
+                if (selectedCharacter.IsMovingAnimDone())
                 {
-                    uiManager.ClearAllRange();
-                    if (!haveSelectedEnemy) // 我还没选敌人
+                    //todo 0改成常量，即会出菜单的玩家这一方，事实上最好是判断，当前玩家是否是要进入菜单的，如果是ai就不用
+                    if (IsPlayerTurn)
                     {
-                        msgDlgButtonInfos = GetMsgDlgButtonInfos();
+                        uiManager.ClearAllRange();
+                        if (!haveSelectedEnemy) // 我还没选敌人
+                        {
+                            msgDlgButtonInfos = GetMsgDlgButtonInfos();
 
-                        uiManager.ShowMsgDlg(msgDlgButtonInfos);
-                        ChangeGameState(GameControlState.ShowCommandMenu);
+                            uiManager.ShowMsgDlg(msgDlgButtonInfos);
+                            ChangeGameState(GameControlState.ShowCommandMenu);
+                        }
+                        else // 我之前已经选过敌人了
+                        {
+                            ChangeGameState(GameControlState.WeaponSelect);
+                        }
                     }
-                    else // 我之前已经选过敌人了
+                    else
                     {
-                        ChangeGameState(GameControlState.WeaponSelect);
+                        ChangeGameState(GameControlState.EnemyExecuteAi);
                     }
                 }
             }
@@ -422,7 +436,7 @@ public class GameManager : MonoBehaviour
                 haveSelectedEnemy = false; // todo 这个现在应该也要改掉了
                 if (battleManager.IsPlayingAnimation == false)
                 {
-                    ChangeGameState(GameControlState.CharacterActionDone);
+                    ChangeGameState(IsPlayerTurn ? GameControlState.CharacterActionDone : GameControlState.EnemyExecuteAi);
                     selectedCharacter.animator.FinishAction();
                 }
                 // 要加判断 是敌人的回合还是我的回合播的动画 这两个后续的跳转是不同的
@@ -467,15 +481,24 @@ public class GameManager : MonoBehaviour
                 //3，启动ai执行，也就是跳转状态
                 int enemyIndex = 0; // 现在是第几个敌人在走ai
                 aiNodes.Clear();
+                selectedCharacter = null;
                 while (enemyIndex < characters[currentPlayerIndex].Count) // 遍历所有敌人
                 {
                     if (characters[currentPlayerIndex][enemyIndex].characterAi) // 如果我这个人身上挂的有ai
                     {
+                        if ((characters[currentPlayerIndex][enemyIndex].hasMoved) &&
+                            (characters[currentPlayerIndex][enemyIndex].hasAttacked)) // 如果这个人已经移动过并且攻击过 那就认为这人完事儿了
+                        {
+                            Debug.Log("This guy(" + characters[currentPlayerIndex][enemyIndex].characterName + ") has worked" );
+                            enemyIndex++; // 继续遍历下一个敌人
+                            continue;
+                        }
+                        
+                        Debug.Log(">>>>Check for this guy(" + characters[currentPlayerIndex][enemyIndex].characterName + ") ai" );
+                        
                         if (characters[currentPlayerIndex][enemyIndex].hasMoved == false) // 如果这个人还没有移动过 就开始走移动ai
                         {
-                            selectedCharacter =
-                                characters[currentPlayerIndex]
-                                    [enemyIndex]; // 把selectedCharacter设置为这个敌人 selectedCharacter的作用是说它就是我们目前的焦点
+                            selectedCharacter = characters[currentPlayerIndex][enemyIndex]; // 把selectedCharacter设置为这个敌人 selectedCharacter的作用是说它就是我们目前的焦点
                             AIClip moveAI =
                                 selectedCharacter.characterAi
                                     .GetAvailableMoveAI(
@@ -486,12 +509,11 @@ public class GameManager : MonoBehaviour
                                     aiNodes.Add(AiNode.FromAiNodeData(selectedCharacter, aiAction(selectedCharacter)));
                                 }
 
-                            selectedCharacter.hasMoved = true;
-                            ChangeGameState(GameControlState.EnemyExecuteAi);
-                            return;
+                            characters[currentPlayerIndex][enemyIndex].hasMoved = true;
+                            //ChangeGameState(GameControlState.EnemyExecuteAi);
+                            break;
                         }
-                        else if (characters[currentPlayerIndex][enemyIndex].hasAttacked ==
-                                 false) // 如果这个人还没有攻击过 就开始走攻击ai
+                        else if (characters[currentPlayerIndex][enemyIndex].hasAttacked == false) // 如果这个人还没有攻击过 就开始走攻击ai
                         {
                             selectedCharacter =
                                 characters[currentPlayerIndex]
@@ -505,15 +527,9 @@ public class GameManager : MonoBehaviour
                                 {
                                     aiNodes.Add(AiNode.FromAiNodeData(selectedCharacter, aiAction(selectedCharacter)));
                                 }
-                            selectedCharacter.hasAttacked = true;
-                            ChangeGameState(GameControlState.EnemyExecuteAi);
-                            return;
-                        }
-
-                        if ((characters[currentPlayerIndex][enemyIndex].hasMoved) &&
-                            (characters[currentPlayerIndex][enemyIndex].hasAttacked)) // 如果这个人已经移动过并且攻击过 那就认为这人完事儿了
-                        {
-                            enemyIndex++; // 继续遍历下一个敌人
+                            characters[currentPlayerIndex][enemyIndex].hasAttacked = true;
+                            //ChangeGameState(GameControlState.EnemyExecuteAi);
+                            break;
                         }
                     }
                     else
@@ -521,7 +537,21 @@ public class GameManager : MonoBehaviour
                         enemyIndex++;
                     }
                 }
-                ChangeGameState(GameControlState.EndTurn);
+                
+                //找到人了就办事儿，否则就下一个
+                Debug.Log(selectedCharacter != null
+                    ? (selectedCharacter.characterName + " has " + aiNodes.Count + " to run")
+                    : ("no guy found")
+                );
+                if (selectedCharacter != null && aiNodes.Count > 0)
+                {
+                    ChangeGameState(GameControlState.EnemyExecuteAi);
+                }
+                else
+                {
+                    ChangeGameState(GameControlState.EndTurn);
+                }
+                
             }
                 break;
             case GameControlState.EnemyAnimation:
@@ -550,7 +580,7 @@ public class GameManager : MonoBehaviour
                         aiIndex++;
                     }
                 }
-                ChangeGameState(GameControlState.EnemyTurn);
+                if (aiNodes.Count <= 0) ChangeGameState(GameControlState.EnemyTurn);
             }
                 break;
             case GameControlState.EndTurn:
@@ -574,7 +604,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void ChangeGameState(GameControlState state)
     {
-        Debug.Log(state);
+        Debug.Log(GameState.gameControlState + "==>" + state);
         if (state == GameControlState.SelectCharacter) // 死亡时移除
         {
             selectedCharacter = null; // 回合开始 把我方和敌方的选中角色都清空
@@ -725,32 +755,34 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void Attack()
     {
-        BattleInputInfo battleInputInfo = new BattleInputInfo();
-        battleInputInfo.attacker = characters[attacker.playerIndex][attacker.characterIndex];
-        battleInputInfo.defender = characters[defender.playerIndex][defender.characterIndex];
-        battleInputInfo.attackerWeapon = characters[attacker.playerIndex][attacker.characterIndex].attack.Weapons[0];
-        battleInputInfo.defenderWeapon = characters[defender.playerIndex][defender.characterIndex].attack.Weapons[0];
-        battleInputInfo.attackerPos = new Vector2Int(
-            characters[attacker.playerIndex][attacker.characterIndex].gPos.grid.x,
-            characters[attacker.playerIndex][attacker.characterIndex].gPos.grid.y);
-        battleInputInfo.defenderPos = new Vector2Int(
-            characters[defender.playerIndex][defender.characterIndex].gPos.grid.x,
-            characters[defender.playerIndex][defender.characterIndex].gPos.grid.y);
-        battleInputInfo.attackerTerrainStatus = mapGenerator.Map
-        [
-            battleInputInfo.attackerPos.x,
-            battleInputInfo.attackerPos.y
-        ].percentageModifier;
-        battleInputInfo.defenderTerrainStatus = mapGenerator.Map
-        [
-            battleInputInfo.defenderPos.x,
-            battleInputInfo.defenderPos.y
-        ].percentageModifier;
-        battleInputInfo.isSameSide = attacker.playerIndex == defender.playerIndex;
-
-        battleManager.StartBattle(battleInputInfo);
-        battleManager.StartBattleAnim();
-        ChangeGameState(GameControlState.PlayBattleAnimation);
+        StartAttack(characters[attacker.playerIndex][attacker.characterIndex],
+            characters[defender.playerIndex][defender.characterIndex]);
+        // BattleInputInfo battleInputInfo = new BattleInputInfo();
+        // battleInputInfo.attacker = characters[attacker.playerIndex][attacker.characterIndex];
+        // battleInputInfo.defender = characters[defender.playerIndex][defender.characterIndex];
+        // battleInputInfo.attackerWeapon = characters[attacker.playerIndex][attacker.characterIndex].attack.Weapons[0];
+        // battleInputInfo.defenderWeapon = characters[defender.playerIndex][defender.characterIndex].attack.Weapons[0];
+        // battleInputInfo.attackerPos = new Vector2Int(
+        //     characters[attacker.playerIndex][attacker.characterIndex].gPos.grid.x,
+        //     characters[attacker.playerIndex][attacker.characterIndex].gPos.grid.y);
+        // battleInputInfo.defenderPos = new Vector2Int(
+        //     characters[defender.playerIndex][defender.characterIndex].gPos.grid.x,
+        //     characters[defender.playerIndex][defender.characterIndex].gPos.grid.y);
+        // battleInputInfo.attackerTerrainStatus = mapGenerator.Map
+        // [
+        //     battleInputInfo.attackerPos.x,
+        //     battleInputInfo.attackerPos.y
+        // ].percentageModifier;
+        // battleInputInfo.defenderTerrainStatus = mapGenerator.Map
+        // [
+        //     battleInputInfo.defenderPos.x,
+        //     battleInputInfo.defenderPos.y
+        // ].percentageModifier;
+        // battleInputInfo.isSameSide = attacker.playerIndex == defender.playerIndex;
+        //
+        // battleManager.StartBattle(battleInputInfo);
+        // battleManager.StartBattleAnim();
+        // ChangeGameState(GameControlState.PlayBattleAnimation);
     }
 
     /// <summary>
@@ -1298,17 +1330,19 @@ public class GameManager : MonoBehaviour
     /// </summary>
     /// <param name="character">执行者</param>
     /// <param name="toGrid">目标格子</param>
+    /// <param name="moveGrids">可以移动的范围</param>
     /// <returns>是否开始移动了</returns>
-    public bool StartCharacterMove(CharacterObject character, Vector2Int toGrid)
+    public bool StartCharacterMove(CharacterObject character, Vector2Int toGrid, out List<Vector2Int> moveGrids)
     {
-        List<Vector2Int> moveGrids = movementManager.GetMovePath(toGrid);
+        //todo 组织路径的功能似乎有毛病，得查
+        moveGrids = movementManager.GetMovePath(toGrid);
         if (moveGrids.Count > 0)
         {
             //uiManager.ClearAllRange();
-            for (int i = 0; i < moveGrids.Count; i++)
-            {
-                uiManager.AddRange(SignType.Move, moveGrids[i]);
-            }
+            // for (int i = 0; i < moveGrids.Count; i++)
+            // {
+            //     uiManager.AddRange(SignType.Move, moveGrids[i]);
+            // }
 
             AnimatorController animatorController =
                 character.gameObject.GetComponent<AnimatorController>();
@@ -1323,5 +1357,65 @@ public class GameManager : MonoBehaviour
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// 获得当前角色可以移动到的所有单元格
+    /// </summary>
+    /// <param name="character"></param>
+    /// <returns></returns>
+    public List<Vector2Int> GetCharacterCanMoveToArea(CharacterObject character)
+    {
+        List<Vector2Int> occupiedGrids = GetOccupiedGrids(character);
+        List<Vector2Int> allyGrids = GetAllyGrids(character);
+        List<DijkstraMoveInfo> range = movementManager.GetMoveRange(character, occupiedGrids, allyGrids);
+        List<Vector2Int> res = new List<Vector2Int>();
+        foreach (DijkstraMoveInfo info in range)
+        {
+            res.Add(info.position);
+        }
+
+        return res;
+    }
+
+    /// <summary>
+    /// 当前是否是玩家的回合，玩家正在进行的回合，状态机跳转会不同
+    /// </summary>
+    /// <returns></returns>
+    private bool IsPlayerTurn => selectedCharacter == null || selectedCharacter.slaveTo.masterPlayerIndex == 0;
+
+    /// <summary>
+    /// 开始战斗
+    /// </summary>
+    /// <param name="whoAttacks"></param>
+    /// <param name="whoDefends"></param>
+    public void StartAttack(CharacterObject whoAttacks, CharacterObject whoDefends)
+    {
+        BattleInputInfo battleInputInfo = new BattleInputInfo();
+        battleInputInfo.attacker = whoAttacks;
+        battleInputInfo.defender = whoDefends;
+        battleInputInfo.attackerWeapon = whoAttacks.attack.Weapons[0];
+        battleInputInfo.defenderWeapon = whoDefends.attack.Weapons[0];
+        battleInputInfo.attackerPos = new Vector2Int(
+            whoAttacks.gPos.grid.x,
+            whoAttacks.gPos.grid.y);
+        battleInputInfo.defenderPos = new Vector2Int(
+            whoDefends.gPos.grid.x,
+            whoDefends.gPos.grid.y);
+        battleInputInfo.attackerTerrainStatus = mapGenerator.Map
+        [
+            battleInputInfo.attackerPos.x,
+            battleInputInfo.attackerPos.y
+        ].percentageModifier;
+        battleInputInfo.defenderTerrainStatus = mapGenerator.Map
+        [
+            battleInputInfo.defenderPos.x,
+            battleInputInfo.defenderPos.y
+        ].percentageModifier;
+        battleInputInfo.isSameSide = attacker.playerIndex == defender.playerIndex;
+
+        battleManager.StartBattle(battleInputInfo);
+        battleManager.StartBattleAnim();
+        ChangeGameState(GameControlState.PlayBattleAnimation);
     }
 }
