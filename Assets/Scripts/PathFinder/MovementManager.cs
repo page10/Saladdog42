@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class MovementManager : MonoBehaviour
 {
+    // movementManager 是个服务性的类 不是个功能性的类 只是提供运算函数 甚至可以是静态的 它只是因为需要查询信息所以才是动态的 现在记在类里的「移动范围」之类的是不对的
     private MapGenerator _mapGenerator;
     //private GridPosition _movingCharacter;
 

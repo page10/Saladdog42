@@ -492,7 +492,7 @@ public class GameManager : MonoBehaviour
                     if (characters[currentPlayerIndex][enemyIndex].characterAi) // 如果我这个人身上挂的有ai
                     {
                         if ((characters[currentPlayerIndex][enemyIndex].hasMoved) &&
-                            (characters[currentPlayerIndex][enemyIndex].hasAttacked)) // 如果这个人已经移动过并且攻击过 那就认为这人完事儿了
+                            (characters[currentPlayerIndex][enemyIndex].hasAttacked)) // 如果这个人已经移动过并且攻击过 那就认为这人完事儿了 增加index并且continue
                         {
                             Debug.Log(_tickElapsed + ">>>"+ "This guy(" + characters[currentPlayerIndex][enemyIndex].characterName + ") has worked" );
                             enemyIndex++; // 继续遍历下一个敌人
@@ -501,7 +501,7 @@ public class GameManager : MonoBehaviour
                         
                         Debug.Log(_tickElapsed + ">>>"+ ">>>>Check for this guy(" + characters[currentPlayerIndex][enemyIndex].characterName + ") ai" );
                         
-                        if (characters[currentPlayerIndex][enemyIndex].hasMoved == false) // 如果这个人还没有移动过 就开始走移动ai
+                        if (characters[currentPlayerIndex][enemyIndex].hasMoved == false) // 如果这个人还没有移动过 就轮到这个人开始走ai 生成完移动aiNode后跳出生成ainode的循环 去执行ainode的状态
                         {
                             selectedCharacter = characters[currentPlayerIndex][enemyIndex]; // 把selectedCharacter设置为这个敌人 selectedCharacter的作用是说它就是我们目前的焦点
                             AIClip moveAI =
@@ -518,7 +518,7 @@ public class GameManager : MonoBehaviour
                             //ChangeGameState(GameControlState.EnemyExecuteAi);
                             break;
                         }
-                        else if (characters[currentPlayerIndex][enemyIndex].hasAttacked == false) // 如果这个人还没有攻击过 就开始走攻击ai
+                        else if (characters[currentPlayerIndex][enemyIndex].hasAttacked == false) // 如果这个人还没有攻击过 也轮到它开始走ai 生成ainode后break掉循环去执行ainode 
                         {
                             selectedCharacter =
                                 characters[currentPlayerIndex]
@@ -537,7 +537,7 @@ public class GameManager : MonoBehaviour
                             break;
                         }
                     }
-                    else
+                    else  // 我身上没ai就直接去找下一个人
                     {
                         enemyIndex++;
                     }
@@ -559,14 +559,9 @@ public class GameManager : MonoBehaviour
                 
             }
                 break;
-            case GameControlState.EnemyAnimation:
-            {
-                // todo 在这里要怎么跳转回EnemyTurn
-            }
-                break;
             case GameControlState.EnemyExecuteAi:
             {
-                // todo 在这里逐条执行ainode
+                // 在这里逐条执行现在焦点这个人的ainode 列表为空时跳转回EnemyTurn
                 int aiIndex = 0;
                 float delta = Time.fixedDeltaTime;  
                 while (aiIndex < aiNodes.Count)

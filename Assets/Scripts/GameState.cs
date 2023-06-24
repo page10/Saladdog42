@@ -43,7 +43,6 @@ public enum GameControlState
     /// 如果播放动画结束就回到「EnemyTurn」 进行下一个人的逻辑
     /// 也许可以加一个按键跳过的功能
     /// </summary>
-    EnemyAnimation,
     EnemyExecuteAi,
 }
 public static class GameState 
