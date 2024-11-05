@@ -64,7 +64,6 @@ public class MapGenerator : MonoBehaviour
                 //Debug.Log(tileName);
             }
         }
-
     }
     private void CreateMapTile(int x, int y, TileOfTerrain namedTile)
     {
